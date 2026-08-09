@@ -1,0 +1,345 @@
+:root {
+  color-scheme: dark;
+  --color-page: #0f172a;
+  --color-accent-indigo-rgb: 79, 70, 229;
+  --color-accent-emerald-rgb: 16, 185, 129;
+  --color-range: #6366f1;
+  --chart-height: 420px;
+  --chart-height-mobile: 320px;
+  --schedule-max-height: 520px;
+  --schedule-max-height-mobile: 360px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(var(--color-accent-indigo-rgb), 0.16), transparent 30rem),
+    radial-gradient(circle at 90% 5%, rgba(var(--color-accent-emerald-rgb), 0.13), transparent 26rem),
+    var(--color-page);
+}
+
+input[type="range"] {
+  accent-color: var(--color-range);
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.chart-box {
+  height: var(--chart-height);
+}
+
+.chart-box canvas {
+  max-width: 100% !important;
+}
+
+.schedule-scroll {
+  max-height: var(--schedule-max-height);
+  overflow: auto;
+}
+
+.info-tip:hover .tip-text,
+.info-tip:focus .tip-text {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.info-tip {
+  flex: 0 0 1.25rem;
+  width: 1.25rem !important;
+  min-width: 1.25rem;
+  height: 1.25rem !important;
+  min-height: 1.25rem;
+  line-height: 1;
+}
+
+.tip-text {
+  line-height: 1.35;
+}
+
+main,
+header,
+.app-layout,
+.controls-panel,
+.results-panel,
+.results-panel > section,
+.results-panel > details,
+#controls,
+#moduleExtraControls,
+#kpiGrid,
+.chart-box {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .chart-box {
+    height: var(--chart-height-mobile);
+  }
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .results-panel {
+    order: 2;
+  }
+
+  .controls-panel {
+    order: 1;
+  }
+
+  .controls-panel input,
+  .controls-panel select,
+  .controls-panel button {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #moduleTabs {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  #moduleTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  #kpiGrid {
+    display: block;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  #kpiGrid article {
+    min-height: 0;
+    padding: 0.875rem 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  #kpiGrid article + article {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  #kpiGrid .kpi-label {
+    min-width: 0;
+    flex: 1;
+    justify-content: flex-start;
+  }
+
+  #kpiGrid .kpi-value {
+    padding-top: 0;
+    margin-top: 0;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .schedule-scroll {
+    max-height: var(--schedule-max-height-mobile);
+    overflow: auto;
+    max-width: 100%;
+  }
+
+  .schedule-scroll table {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .schedule-scroll th,
+  .schedule-scroll td {
+    white-space: nowrap;
+  }
+
+  #controls input[type="range"] {
+    display: none;
+  }
+
+  #controls .control-range-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #controls input[data-control-kind="number"] {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+  }
+
+  #controls .numeric-input {
+    text-align: left;
+  }
+
+  #controls label > div:first-child {
+    align-items: flex-start;
+  }
+
+  #controls .control-display {
+    display: none;
+  }
+
+  #controls .info-tip,
+  #moduleExtraControls .info-tip,
+  #kpiGrid .info-tip {
+    transform: translateY(1px);
+  }
+}
+
+@media (max-width: 480px) {
+  #kpiGrid {
+    gap: 0;
+  }
+
+  #kpiGrid article {
+    min-height: 0;
+  }
+
+  #chartTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  main {
+    gap: 1rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 1rem !important;
+  }
+
+  .controls-panel,
+  .results-panel > section,
+  .results-panel > details {
+    border-radius: 0.5rem;
+  }
+
+  .controls-panel {
+    padding: 0.75rem;
+  }
+
+  .results-panel {
+    gap: 1rem;
+  }
+
+  header {
+    gap: 0.875rem;
+    padding-bottom: 1rem;
+  }
+
+  #featureTitle {
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  #moduleTabs button {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+    font-size: 0.72rem;
+  }
+
+  #chartTabs button {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.15;
+  }
+
+  .chart-box {
+    height: 260px;
+  }
+
+  .results-panel > section {
+    padding: 0.75rem;
+  }
+
+  #kpiGrid article {
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+  }
+
+  #kpiGrid .kpi-label p {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  #kpiGrid .kpi-value {
+    font-size: 1rem;
+  }
+
+  details summary {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  table {
+    font-size: 0.75rem;
+  }
+
+  th,
+  td {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
+
+@media (max-width: 390px) {
+  main {
+    padding-left: 0.625rem !important;
+    padding-right: 0.625rem !important;
+  }
+
+  .controls-panel {
+    padding: 0.625rem;
+  }
+
+  #controls .control-card {
+    padding: 0.625rem;
+  }
+
+  #moduleTabs {
+    width: 100%;
+  }
+
+  #moduleTabs button {
+    flex: 1 0 auto;
+  }
+
+  #chartTitle {
+    font-size: 0.95rem;
+  }
+
+  #chartSubtitle {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .chart-box {
+    height: 240px;
+  }
+
+  .tip-text {
+    width: min(13rem, calc(100vw - 2rem));
+  }
+}

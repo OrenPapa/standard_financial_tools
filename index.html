@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>Financial Tools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="./src/styles/theme.css?v=20260809-mobile-390" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen text-slate-100 antialiased">
+  <main class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+    <header class="flex flex-col gap-3 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p id="featureEyebrow" class="text-sm font-medium text-emerald-300">Financial Tools</p>
+        <h1 id="featureTitle" class="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Pension Accumulation & Drawdown</h1>
+      </div>
+      <div id="moduleTabs" class="inline-flex w-fit rounded-md border border-white/10 bg-slate-900/70 p-0.5 shadow-xl shadow-slate-950/20"></div>
+    </header>
+
+    <section class="app-layout grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <aside class="controls-panel h-fit rounded-lg border border-white/10 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/20">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-white">Controls</h2>
+          <button id="resetBtn" class="rounded-md border border-white/10 px-3 py-1.5 text-sm text-slate-200 hover:bg-white/10">Reset</button>
+        </div>
+        <div id="moduleExtraControls"></div>
+        <div id="controls" class="space-y-4"></div>
+      </aside>
+
+      <div class="results-panel space-y-6">
+        <section id="kpiGrid" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"></section>
+
+        <section class="rounded-lg border border-white/10 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/20">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 id="chartTitle" class="font-semibold text-white">Annual Portfolio Growth</h2>
+              <p id="chartSubtitle" class="text-sm text-slate-400">Principal, interest, and net balance after tax</p>
+            </div>
+            <div id="chartTabs" class="inline-flex w-fit rounded-lg border border-white/10 bg-slate-950/70 p-1"></div>
+          </div>
+          <div id="primaryChartPanel" class="chart-box"><canvas id="primaryChart"></canvas></div>
+          <div id="secondaryChartPanel" class="chart-box hidden"><canvas id="secondaryChart"></canvas></div>
+        </section>
+
+        <details open class="rounded-lg border border-white/10 bg-slate-900/80 shadow-2xl shadow-slate-950/20">
+          <summary class="flex cursor-pointer items-center justify-between px-4 py-3">
+            <span id="tableTitle" class="font-semibold text-white">Annual Accumulation Schedule</span>
+            <span class="text-sm text-slate-400">Toggle</span>
+          </summary>
+          <div class="schedule-scroll border-t border-white/10">
+            <table class="min-w-full text-left text-sm">
+              <thead id="scheduleHead" class="sticky top-0 z-10 bg-slate-900 text-xs uppercase tracking-wider text-slate-400"></thead>
+              <tbody id="scheduleBody" class="divide-y divide-white/10"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/app.js?v=20260809-mobile-390"></script>
+</body>
+</html>
