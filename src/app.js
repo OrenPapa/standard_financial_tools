@@ -1,13 +1,13 @@
-import { pensionModule } from './modules/pension.js?v=20260809-mobile-390';
-import { investmentModule } from './modules/investment.js?v=20260809-mobile-390';
-import { inflationModule } from './modules/inflation.js?v=20260809-mobile-390';
-import { loanModule } from './modules/loan.js?v=20260809-mobile-390';
-import { mortgageModule } from './modules/mortgage.js?v=20260809-mobile-390';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260809-mobile-390';
-import { renderKpis } from './ui/kpis.js?v=20260809-mobile-390';
-import { renderSchedule } from './ui/table.js?v=20260809-mobile-390';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260809-mobile-390';
-import { classes } from './ui/theme.js?v=20260809-mobile-390';
+import { pensionModule } from './modules/pension.js?v=20260809-noop-inputs';
+import { investmentModule } from './modules/investment.js?v=20260809-noop-inputs';
+import { inflationModule } from './modules/inflation.js?v=20260809-noop-inputs';
+import { loanModule } from './modules/loan.js?v=20260809-noop-inputs';
+import { mortgageModule } from './modules/mortgage.js?v=20260809-noop-inputs';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260809-noop-inputs';
+import { renderKpis } from './ui/kpis.js?v=20260809-noop-inputs';
+import { renderSchedule } from './ui/table.js?v=20260809-noop-inputs';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260809-noop-inputs';
+import { classes } from './ui/theme.js?v=20260809-noop-inputs';
 
 const modules = {
   [pensionModule.id]: pensionModule,
@@ -63,6 +63,8 @@ function updateModuleTabs() {
 function setControlValue(id, value) {
   const module = activeModule();
   const state = activeState();
+  if (Object.is(state[id], value)) return;
+
   state[id] = value;
   syncControl({ module, state, id });
 
@@ -80,6 +82,7 @@ function renderControlPanel() {
     module,
     payoutType: appState.payoutType,
     onPayoutTypeChange(nextType) {
+      if (appState.payoutType === nextType) return;
       appState.payoutType = nextType;
       updatePayoutButtons(appState.payoutType);
       calculateAndRender();

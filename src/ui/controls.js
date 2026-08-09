@@ -75,7 +75,7 @@ export function renderControls({ module, state, onChange }) {
         document.getElementById(`${id}Display`).textContent = event.target.value;
         clearTimeout(numberDebounceTimers.get(id));
         numberDebounceTimers.set(id, setTimeout(() => {
-          commitNumberInput(event.target, state, onChange);
+          commitNumberInput(event.target, module, state, onChange, { normalizeDisplay: false });
         }, NUMBER_INPUT_DEBOUNCE_MS));
         return;
       }
@@ -86,14 +86,14 @@ export function renderControls({ module, state, onChange }) {
 
   controls.querySelectorAll('input[data-control-kind="number"]').forEach(input => {
     input.addEventListener('change', event => {
-      commitNumberInput(event.target, state, onChange);
+      commitNumberInput(event.target, module, state, onChange);
     });
     input.addEventListener('blur', event => {
-      commitNumberInput(event.target, state, onChange);
+      commitNumberInput(event.target, module, state, onChange);
     });
     input.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
-        commitNumberInput(event.currentTarget, state, onChange);
+        commitNumberInput(event.currentTarget, module, state, onChange);
         event.currentTarget.blur();
       }
     });
@@ -107,15 +107,34 @@ export function renderControls({ module, state, onChange }) {
   });
 }
 
-function commitNumberInput(input, state, onChange) {
+function commitNumberInput(input, module, state, onChange, options = {}) {
   if (!input || !input.dataset) return;
   const id = input.dataset.id;
+  const meta = module.controls.find(item => item.id === id);
+  const normalizeDisplay = options.normalizeDisplay !== false;
   clearTimeout(numberDebounceTimers.get(id));
   numberDebounceTimers.delete(id);
   const currentValue = state[id];
   const nextValue = parseNumberInput(input.value);
+
+  if (!Number.isFinite(nextValue)) {
+    if (normalizeDisplay && meta) {
+      input.value = formatNumberForInput(meta, currentValue);
+      document.getElementById(`${id}Display`).textContent = formatNumberForInput(meta, currentValue);
+    }
+    return;
+  }
+
+  if (Object.is(nextValue, currentValue)) {
+    if (normalizeDisplay && meta) {
+      input.value = formatNumberForInput(meta, currentValue);
+      document.getElementById(`${id}Display`).textContent = formatNumberForInput(meta, currentValue);
+    }
+    return;
+  }
+
   input.dataset.forceSync = 'true';
-  onChange(id, Number.isFinite(nextValue) ? nextValue : currentValue);
+  onChange(id, nextValue);
 }
 
 function parseNumberInput(value) {
