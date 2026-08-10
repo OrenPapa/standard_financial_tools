@@ -1,13 +1,13 @@
-import { pensionModule } from './modules/pension.js?v=20260809-noop-inputs';
-import { investmentModule } from './modules/investment.js?v=20260809-noop-inputs';
-import { inflationModule } from './modules/inflation.js?v=20260809-noop-inputs';
-import { loanModule } from './modules/loan.js?v=20260809-noop-inputs';
-import { mortgageModule } from './modules/mortgage.js?v=20260809-noop-inputs';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260809-noop-inputs';
-import { renderKpis } from './ui/kpis.js?v=20260809-noop-inputs';
-import { renderSchedule } from './ui/table.js?v=20260809-noop-inputs';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260809-noop-inputs';
-import { classes } from './ui/theme.js?v=20260809-noop-inputs';
+import { pensionModule } from './modules/pension.js?v=20260809-units-real-values';
+import { investmentModule } from './modules/investment.js?v=20260809-units-real-values';
+import { inflationModule } from './modules/inflation.js?v=20260809-units-real-values';
+import { loanModule } from './modules/loan.js?v=20260809-units-real-values';
+import { mortgageModule } from './modules/mortgage.js?v=20260809-units-real-values';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260809-units-real-values';
+import { renderKpis } from './ui/kpis.js?v=20260809-units-real-values';
+import { renderSchedule } from './ui/table.js?v=20260809-units-real-values';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260809-units-real-values';
+import { classes } from './ui/theme.js?v=20260809-units-real-values';
 
 const modules = {
   [pensionModule.id]: pensionModule,

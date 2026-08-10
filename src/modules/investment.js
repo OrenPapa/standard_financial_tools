@@ -1,4 +1,5 @@
 import { euros, formatPlain } from '../utils/format.js';
+import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
@@ -7,6 +8,7 @@ const defaultState = {
   contributionInterval: 'monthly',
   investmentYears: 10,
   annualReturn: 5.0,
+  annualInflationRate: 2.5,
   incomeYield: 0,
   incomeFrequency: 'none',
   taxRate: 15.0,
@@ -19,6 +21,7 @@ const controls = [
   { id: 'contributionInterval', label: 'Contribution interval', type: 'select', options: [['weekly', 'Weekly'], ['monthly', 'Monthly'], ['quarterly', 'Quarterly'], ['semiannual', 'Semi-annually'], ['annual', 'Annually']], desc: 'How often the recurring contribution is added.' },
   { id: 'investmentYears', label: 'Investment length', min: 1, max: 50, step: 1, suffix: 'yrs', desc: 'How long the investment runs.' },
   { id: 'annualReturn', label: 'Annual growth rate', min: 0, max: 20, step: 0.1, suffix: '%', desc: 'Expected annual price or fund growth. Do not include separate dividends or coupons here if using income yield.' },
+  { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show ending values in today\'s purchasing power.' },
   { id: 'incomeYield', label: 'Income / dividend yield', min: 0, max: 15, step: 0.1, suffix: '%', advanced: true, desc: 'Annual coupon or dividend yield paid separately from growth.' },
   { id: 'incomeFrequency', label: 'Income paid', type: 'select', advanced: true, options: [['none', 'No separate income'], ['monthly', 'Monthly'], ['quarterly', 'Quarterly'], ['semiannual', 'Twice a year'], ['annual', 'Once a year']], desc: 'How often coupons or dividends are paid.' },
   { id: 'taxRate', label: 'Tax on income', min: 0, max: 40, step: 0.1, suffix: '%', advanced: true, desc: 'Tax withheld from each coupon or dividend payment.' },
@@ -111,8 +114,8 @@ export const investmentModule = {
 
     return {
       kpis: [
-        { label: 'Ending Portfolio', value: euros.format(result.balance), desc: 'Investment value still held at the end.' },
-        { label: 'Total Net Worth', value: euros.format(result.netWorth), desc: 'Portfolio value plus any income paid out as cash.' },
+        { label: 'Ending Portfolio', value: euros.format(result.balance), subvalue: realValueLabel(result.balance, state.annualInflationRate, result.years, euros), desc: 'Investment value still held at the end. The secondary value shows today\'s purchasing power.' },
+        { label: 'Total Net Worth', value: euros.format(result.netWorth), subvalue: realValueLabel(result.netWorth, state.annualInflationRate, result.years, euros), desc: 'Portfolio value plus any income paid out as cash. The secondary value shows today\'s purchasing power.' },
         { label: 'Total Contributed', value: euros.format(result.totalContributed), desc: 'Initial investment plus all recurring contributions.' },
         { label: 'Income After Tax', value: euros.format(result.grossIncome - result.taxPaid), desc: 'Coupons or dividends after withholding tax.' },
         { label: 'Tax Paid', value: euros.format(result.taxPaid), desc: 'Tax withheld from income payments as they occur.' }

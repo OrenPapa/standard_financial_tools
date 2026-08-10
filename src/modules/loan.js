@@ -1,5 +1,6 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
+import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
@@ -10,7 +11,8 @@ const defaultState = {
   extraPayment: 0,
   upfrontFees: 0,
   recurringFee: 0,
-  balloonPayment: 0
+  balloonPayment: 0,
+  annualInflationRate: 2.5
 };
 
 const controls = [
@@ -21,7 +23,8 @@ const controls = [
   { id: 'extraPayment', label: 'Extra payment', min: 0, max: 10000, step: 50, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Additional amount paid on top of the required payment each period.' },
   { id: 'upfrontFees', label: 'Upfront fees', min: 0, max: 50000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time fees paid at the start. They count toward total cost, not loan balance.' },
   { id: 'recurringFee', label: 'Recurring fee', min: 0, max: 1000, step: 10, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Fee paid each payment period, such as an account or service fee.' },
-  { id: 'balloonPayment', label: 'Balloon payment', min: 0, max: 500000, step: 1000, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Remaining balance intentionally paid at the end of the term.' }
+  { id: 'balloonPayment', label: 'Balloon payment', min: 0, max: 500000, step: 1000, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Remaining balance intentionally paid at the end of the term.' },
+  { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show future payments in today\'s purchasing power.' }
 ];
 
 const paymentsPerYear = {
@@ -131,10 +134,12 @@ export const loanModule = {
     const paymentLabel = state.paymentFrequency === 'monthly'
       ? 'Monthly Payment'
       : `${state.paymentFrequency.charAt(0).toUpperCase()}${state.paymentFrequency.slice(1)} Payment`;
+    const realPaymentYear = Math.min(15, Math.max(1, result.payoffYears));
+    const realPaymentSubvalue = `Year ${realPaymentYear.toFixed(realPaymentYear % 1 ? 1 : 0)}: ${realValueLabel(result.scheduledPayment, state.annualInflationRate, realPaymentYear, eurosPrecise).replace('Today: ', '')} today`;
 
     return {
       kpis: [
-        { label: paymentLabel, value: eurosPrecise.format(result.scheduledPayment), desc: 'Required scheduled payment before extra payment and fees.' },
+        { label: paymentLabel, value: eurosPrecise.format(result.scheduledPayment), subvalue: realPaymentSubvalue, desc: 'Required scheduled payment before extra payment and fees. The secondary value shows its future purchasing-power feel.' },
         { label: 'Payment With Extra', value: eurosPrecise.format(result.totalRegularPayment), desc: 'Scheduled payment plus optional extra principal payment.' },
         { label: 'Total Interest', value: euros.format(result.totalInterest), desc: 'Total interest paid over the loan.' },
         { label: 'Total Cost', value: euros.format(result.totalPaid), desc: 'Principal, interest, fees, and any balloon payment.' },

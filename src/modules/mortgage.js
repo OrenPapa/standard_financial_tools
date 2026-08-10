@@ -1,5 +1,6 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
+import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
@@ -12,7 +13,8 @@ const defaultState = {
   annualInsurance: 1200,
   monthlyHOA: 0,
   pmiRate: 0.5,
-  closingCosts: 6000
+  closingCosts: 6000,
+  annualInflationRate: 2.5
 };
 
 const controls = [
@@ -25,7 +27,8 @@ const controls = [
   { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Estimated yearly homeowners insurance.' },
   { id: 'monthlyHOA', label: 'Monthly HOA / maintenance', min: 0, max: 3000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Monthly association dues or maintenance reserve.' },
   { id: 'pmiRate', label: 'PMI rate', min: 0, max: 3, step: 0.1, suffix: '%', advanced: true, desc: 'Annual private mortgage insurance rate, applied while equity is below 20%.' },
-  { id: 'closingCosts', label: 'Closing costs', min: 0, max: 100000, step: 500, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time purchase costs counted in total cost, not loan balance.' }
+  { id: 'closingCosts', label: 'Closing costs', min: 0, max: 100000, step: 500, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time purchase costs counted in total cost, not loan balance.' },
+  { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show future monthly costs in today\'s purchasing power.' }
 ];
 
 function amortizeMortgage(state) {
@@ -139,12 +142,14 @@ export const mortgageModule = {
   },
   calculate(state) {
     const result = amortizeMortgage(state);
+    const realPaymentYear = Math.min(15, Math.max(1, result.payoffYears));
+    const realMonthlyCostSubvalue = `Year ${realPaymentYear.toFixed(realPaymentYear % 1 ? 1 : 0)}: ${realValueLabel(result.totalMonthlyPayment, state.annualInflationRate, realPaymentYear, eurosPrecise).replace('Today: ', '')} today`;
 
     return {
       kpis: [
         { label: 'Loan Amount', value: euros.format(result.loanAmount), desc: 'Home price minus down payment.' },
         { label: 'Principal & Interest', value: eurosPrecise.format(result.scheduledPayment), desc: 'Scheduled monthly mortgage payment before taxes, insurance, PMI, HOA, and extras.' },
-        { label: 'Estimated Monthly Cost', value: eurosPrecise.format(result.totalMonthlyPayment), desc: 'Principal, interest, estimated taxes, insurance, PMI, and HOA.' },
+        { label: 'Estimated Monthly Cost', value: eurosPrecise.format(result.totalMonthlyPayment), subvalue: realMonthlyCostSubvalue, desc: 'Principal, interest, estimated taxes, insurance, PMI, and HOA. The secondary value shows its future purchasing-power feel.' },
         { label: 'Total Interest', value: euros.format(result.totalInterest), desc: 'Total interest paid over the mortgage.' },
         { label: 'Payoff Time', value: `${result.payoffYears.toFixed(1)} yrs`, desc: 'Estimated time until the mortgage balance reaches zero.' }
       ],

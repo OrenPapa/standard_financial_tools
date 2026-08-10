@@ -19,16 +19,17 @@ function renderControl(meta, state, moduleId) {
   const incomeIsActive = moduleId === 'investment' && Number(state.incomeYield) > 0 && state.incomeFrequency !== 'none';
   const checkboxDisabled = meta.id === 'reinvestIncome' && !incomeIsActive;
   const displayValue = controlDisplayValue(meta, value, state, moduleId);
+  const affixedNumberInput = inputMarkup(meta, value, meta.control === 'number' ? 'px-3 py-2 text-right' : 'px-2 py-1.5 text-right');
 
   const controlField = meta.type === 'select'
     ? `<select id="${meta.id}" data-id="${meta.id}" class="${classes.inputBase} px-2 py-2">${meta.options.map(([optionValue, label]) => `<option value="${optionValue}" ${value === optionValue ? 'selected' : ''}>${label}</option>`).join('')}</select>`
     : meta.type === 'checkbox'
       ? `<button id="${meta.id}" data-id="${meta.id}" type="button" aria-pressed="${value}" ${checkboxDisabled ? 'disabled' : ''} class="w-full rounded-md border border-white/10 px-3 py-2 text-sm font-medium transition ${checkboxDisabled ? 'cursor-not-allowed bg-slate-950/60 text-slate-500' : value ? 'bg-emerald-500 text-slate-950' : 'bg-slate-950 text-slate-300'}">${checkboxDisabled ? 'No income to reinvest' : value ? 'Enabled' : 'Disabled'}</button>`
       : meta.control === 'number'
-        ? `<input id="${meta.id}Number" data-id="${meta.id}" data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(meta, value)}" class="${classes.inputBase} numeric-input px-3 py-2 text-right">`
+        ? affixedNumberInput
       : `<div class="control-range-grid grid grid-cols-[1fr_88px] items-center gap-3">
           <input id="${meta.id}" data-id="${meta.id}" data-control-kind="range" type="range" min="${meta.min}" max="${meta.max}" step="${meta.step}" value="${value}" class="h-2 w-full cursor-pointer rounded-lg bg-slate-700">
-          <input id="${meta.id}Number" data-id="${meta.id}" data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(meta, value)}" class="${classes.inputBase} numeric-input px-2 py-1.5 text-right">
+          ${affixedNumberInput}
         </div>`;
 
   return `
@@ -42,6 +43,26 @@ function renderControl(meta, state, moduleId) {
       </div>
       ${controlField}
     </label>
+  `;
+}
+
+function inputMarkup(meta, value, inputPaddingClasses) {
+  const prefix = (meta.prefix || '').trim() === 'EUR' ? '€' : (meta.prefix || '').trim();
+  const suffix = (meta.suffix || '').trim();
+  const hasPrefix = Boolean(prefix);
+  const hasSuffix = Boolean(suffix);
+  const paddingClasses = [
+    inputPaddingClasses,
+    hasPrefix ? 'pl-8' : '',
+    hasSuffix ? suffix.length > 3 ? 'pr-12' : 'pr-9' : ''
+  ].filter(Boolean).join(' ');
+
+  return `
+    <span class="input-affix-shell relative block">
+      ${hasPrefix ? `<span class="input-affix input-affix-prefix">${prefix}</span>` : ''}
+      <input id="${meta.id}Number" data-id="${meta.id}" data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(meta, value)}" class="${classes.inputBase} numeric-input ${paddingClasses}">
+      ${hasSuffix ? `<span class="input-affix input-affix-suffix">${suffix}</span>` : ''}
+    </span>
   `;
 }
 

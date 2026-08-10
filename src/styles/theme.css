@@ -31,6 +31,26 @@ input[type="range"] {
   accent-color: var(--color-range);
 }
 
+.input-affix {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  color: rgb(148, 163, 184);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.input-affix-prefix {
+  left: 0.75rem;
+}
+
+.input-affix-suffix {
+  right: 0.75rem;
+}
+
 details > summary::-webkit-details-marker {
   display: none;
 }
@@ -133,6 +153,7 @@ header,
     box-shadow: none;
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
@@ -155,6 +176,12 @@ header,
     line-height: 1.2;
     text-align: right;
     white-space: nowrap;
+  }
+
+  #kpiGrid .kpi-subvalue {
+    flex-basis: 100%;
+    margin-top: -0.5rem;
+    text-align: right;
   }
 
   .schedule-scroll {
@@ -188,6 +215,14 @@ header,
 
   #controls .numeric-input {
     text-align: left;
+  }
+
+  #controls .input-affix-prefix + .numeric-input {
+    padding-left: 2.25rem;
+  }
+
+  #controls .numeric-input {
+    min-height: 2.5rem;
   }
 
   #controls label > div:first-child {

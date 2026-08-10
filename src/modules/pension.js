@@ -1,4 +1,5 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
+import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
@@ -140,8 +141,8 @@ export const pensionModule = {
         { label: 'Gross Balance', value: euros.format(acc.balance), desc: 'Fund value before tax at retirement.' },
         { label: 'Net Balance', value: euros.format(acc.netBalance), desc: 'Retirement balance after profit tax.' },
         { label: "Today's Purchasing Power", value: euros.format(acc.realNetBalance), desc: 'Net balance discounted by inflation.' },
-        { label: 'Year 1 Monthly Payout', value: eurosPrecise.format(dd.startingPayout), desc: 'Monthly withdrawal in the first retirement year.' },
-        { label: `Ending Monthly Payout, Year ${state.payoutYears}`, value: eurosPrecise.format(dd.endingPayout), desc: 'Monthly withdrawal in the final payout year.' }
+        { label: 'Year 1 Monthly Payout', value: eurosPrecise.format(dd.startingPayout), subvalue: realValueLabel(dd.startingPayout, state.annualInflationRate, acc.years, eurosPrecise), desc: 'Monthly withdrawal in the first retirement year. The secondary value shows today\'s purchasing power.' },
+        { label: `Ending Monthly Payout, Year ${state.payoutYears}`, value: eurosPrecise.format(dd.endingPayout), subvalue: realValueLabel(dd.endingPayout, state.annualInflationRate, acc.years + state.payoutYears - 1, eurosPrecise), desc: 'Monthly withdrawal in the final payout year. The secondary value shows today\'s purchasing power.' }
       ],
       table: {
         title: 'Annual Accumulation Schedule',
