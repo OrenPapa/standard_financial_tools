@@ -1,16 +1,16 @@
-import { pensionModule } from './modules/pension.js?v=20260810-initial-loader';
-import { investmentModule } from './modules/investment.js?v=20260810-initial-loader';
-import { inflationModule } from './modules/inflation.js?v=20260810-initial-loader';
-import { loanModule } from './modules/loan.js?v=20260810-initial-loader';
-import { mortgageModule } from './modules/mortgage.js?v=20260810-initial-loader';
-import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-initial-loader';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-initial-loader';
-import { renderKpis } from './ui/kpis.js?v=20260810-initial-loader';
-import { renderSchedule } from './ui/table.js?v=20260810-initial-loader';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-initial-loader';
-import { classes } from './ui/theme.js?v=20260810-initial-loader';
-import { initializeTooltips } from './ui/tooltips.js?v=20260810-initial-loader';
-import { initializeThemePicker } from './ui/themePicker.js?v=20260810-initial-loader';
+import { pensionModule } from './modules/pension.js?v=20260810-mobile-kpi-compact';
+import { investmentModule } from './modules/investment.js?v=20260810-mobile-kpi-compact';
+import { inflationModule } from './modules/inflation.js?v=20260810-mobile-kpi-compact';
+import { loanModule } from './modules/loan.js?v=20260810-mobile-kpi-compact';
+import { mortgageModule } from './modules/mortgage.js?v=20260810-mobile-kpi-compact';
+import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-mobile-kpi-compact';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-mobile-kpi-compact';
+import { renderKpis } from './ui/kpis.js?v=20260810-mobile-kpi-compact';
+import { renderSchedule } from './ui/table.js?v=20260810-mobile-kpi-compact';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-mobile-kpi-compact';
+import { classes } from './ui/theme.js?v=20260810-mobile-kpi-compact';
+import { initializeTooltips } from './ui/tooltips.js?v=20260810-mobile-kpi-compact';
+import { initializeThemePicker } from './ui/themePicker.js?v=20260810-mobile-kpi-compact';
 
 const modules = {
   [pensionModule.id]: pensionModule,

@@ -510,51 +510,61 @@ header,
   }
 
   #kpiGrid {
-    display: block;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    width: 100%;
   }
 
   #kpiGrid article {
-    min-height: 0;
-    padding: 0.875rem 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
+    min-height: 5.75rem;
+    padding: 0.625rem;
+    border: 1px solid var(--ui-border) !important;
+    border-radius: 0.5rem;
+    background: var(--ui-card) !important;
     box-shadow: none;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  #kpiGrid article:first-child {
+    grid-column: 1 / -1;
+    min-height: 6.5rem;
+    padding: 0.75rem;
   }
 
   #kpiGrid article + article {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--ui-border) !important;
   }
 
   #kpiGrid .kpi-label {
     min-width: 0;
-    flex: 1;
-    justify-content: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  #kpiGrid .kpi-label p {
+    line-height: 1.25;
   }
 
   #kpiGrid .kpi-value {
     padding-top: 0;
-    margin-top: 0;
-    font-size: 1.15rem;
+    margin-top: auto;
+    font-size: 1.05rem;
     line-height: 1.2;
-    text-align: right;
-    white-space: nowrap;
+    text-align: left;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  #kpiGrid article:first-child .kpi-value {
+    font-size: 1.45rem;
   }
 
   #kpiGrid .kpi-subvalue {
-    flex-basis: 100%;
-    margin-top: -0.5rem;
-    text-align: right;
+    margin-top: 0;
+    text-align: left;
   }
 
   .schedule-scroll {
@@ -646,7 +656,7 @@ header,
 
 @media (max-width: 480px) {
   #kpiGrid {
-    gap: 0;
+    gap: 0.75rem;
   }
 
   #kpiGrid article {
@@ -715,7 +725,7 @@ header,
 
   #kpiGrid article {
     gap: 0.75rem;
-    padding: 0.75rem 0;
+    padding: 0.625rem;
   }
 
   #kpiGrid .kpi-label p {
