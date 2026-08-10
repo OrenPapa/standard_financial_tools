@@ -19,6 +19,9 @@ function chartOptions(chartData) {
         backgroundColor: colors.panel,
         borderColor: colors.borderSubtle,
         borderWidth: 1,
+        titleColor: colors.text,
+        bodyColor: colors.textSoft,
+        footerColor: colors.textMuted,
         callbacks: {
           label: ctx => `${ctx.dataset.label}: ${formatTooltip(ctx.parsed.y)}`
         }

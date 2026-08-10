@@ -17,7 +17,7 @@ export const colors = {
 };
 
 export const classes = {
-  moduleTab: 'rounded px-2.5 py-1.5 text-xs font-medium transition',
+  moduleTab: 'whitespace-nowrap rounded px-2.5 py-1.5 text-xs font-medium transition',
   chartTab: 'rounded-md px-3 py-2 text-sm font-medium transition',
   activeModuleTab: 'active-module-tab',
   inactiveTab: 'text-slate-300 hover:bg-white/10',

@@ -399,6 +399,29 @@ header,
 }
 
 @media (max-width: 900px) {
+  header {
+    position: relative;
+  }
+
+  #featureEyebrow {
+    padding-right: 6.25rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  #themePicker {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 30;
+  }
+
+  #themePicker .theme-menu {
+    right: 0;
+  }
+
   .app-layout {
     grid-template-columns: 1fr;
   }
@@ -419,9 +442,14 @@ header,
   }
 
   #moduleTabs {
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+
+  #moduleTabs button {
+    flex: 0 0 auto;
   }
 
   #moduleTabs::-webkit-scrollbar {
@@ -432,6 +460,8 @@ header,
     display: block;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
   #kpiGrid article {
@@ -679,7 +709,7 @@ header,
   }
 
   #moduleTabs button {
-    flex: 1 0 auto;
+    flex: 0 0 auto;
   }
 
   #chartTitle {

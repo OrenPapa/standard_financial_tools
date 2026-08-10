@@ -39,11 +39,7 @@ export function initializeTooltips() {
 
     if (trigger) {
       event.preventDefault();
-      if (activeTrigger === trigger && tooltipEl.classList.contains('is-visible')) {
-        hideTooltip(trigger);
-      } else {
-        showTooltip(trigger);
-      }
+      showTooltip(trigger);
       return;
     }
 
