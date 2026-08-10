@@ -1,14 +1,15 @@
-import { pensionModule } from './modules/pension.js?v=20260810-rent-buy-polish';
-import { investmentModule } from './modules/investment.js?v=20260810-rent-buy-polish';
-import { inflationModule } from './modules/inflation.js?v=20260810-rent-buy-polish';
-import { loanModule } from './modules/loan.js?v=20260810-rent-buy-polish';
-import { mortgageModule } from './modules/mortgage.js?v=20260810-rent-buy-polish';
-import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-rent-buy-polish';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-rent-buy-polish';
-import { renderKpis } from './ui/kpis.js?v=20260810-rent-buy-polish';
-import { renderSchedule } from './ui/table.js?v=20260810-rent-buy-polish';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-rent-buy-polish';
-import { classes } from './ui/theme.js?v=20260810-rent-buy-polish';
+import { pensionModule } from './modules/pension.js?v=20260810-tooltips';
+import { investmentModule } from './modules/investment.js?v=20260810-tooltips';
+import { inflationModule } from './modules/inflation.js?v=20260810-tooltips';
+import { loanModule } from './modules/loan.js?v=20260810-tooltips';
+import { mortgageModule } from './modules/mortgage.js?v=20260810-tooltips';
+import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-tooltips';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-tooltips';
+import { renderKpis } from './ui/kpis.js?v=20260810-tooltips';
+import { renderSchedule } from './ui/table.js?v=20260810-tooltips';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-tooltips';
+import { classes } from './ui/theme.js?v=20260810-tooltips';
+import { initializeTooltips } from './ui/tooltips.js?v=20260810-tooltips';
 
 const modules = {
   [pensionModule.id]: pensionModule,
@@ -151,6 +152,7 @@ window.addEventListener('hashchange', () => {
 });
 
 renderModuleTabs();
+initializeTooltips();
 renderControlPanel();
 renderChartTabs({
   module: activeModule(),

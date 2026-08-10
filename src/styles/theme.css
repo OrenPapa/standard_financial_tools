@@ -88,6 +88,43 @@ details > summary::-webkit-details-marker {
   line-height: 1.35;
 }
 
+.tooltip-enhanced .tip-text {
+  display: none;
+}
+
+.floating-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  width: max-content;
+  max-width: min(17.5rem, calc(100vw - 1.5rem));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  background: rgb(2, 6, 23);
+  color: rgb(226, 232, 240);
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.45);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  opacity: 0;
+  padding: 0.625rem 0.75rem;
+  pointer-events: none;
+  transform: translateY(-0.125rem);
+  transition: opacity 120ms ease, transform 120ms ease;
+  visibility: hidden;
+}
+
+.floating-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.floating-tooltip.is-measuring {
+  opacity: 0;
+}
+
 .rent-buy-results {
   grid-column: 1 / -1;
   width: 100%;
