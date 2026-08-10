@@ -126,7 +126,7 @@ export const mortgageModule = {
   id: 'mortgage',
   navLabel: 'Mortgage',
   eyebrow: 'Financial Tools',
-  title: 'Mortgage Payment & Ownership Cost',
+  title: 'Mortgage Payment',
   defaultState,
   controls,
   chartTabs: {
