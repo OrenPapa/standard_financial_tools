@@ -173,11 +173,17 @@ function fractionDigitsForStep(step) {
 
 function formatNumberForInput(meta, value) {
   if (!Number.isFinite(Number(value))) return value ?? '';
+  if (isYearInput(meta)) return String(Math.round(Number(value)));
+
   const digits = fractionDigitsForStep(meta.step);
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: digits
   }).format(Number(value));
+}
+
+function isYearInput(meta) {
+  return meta.id.toLowerCase().includes('year') && !meta.prefix;
 }
 
 export function syncControl({ module, state, id }) {
