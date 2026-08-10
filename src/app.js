@@ -1,20 +1,22 @@
-import { pensionModule } from './modules/pension.js?v=20260809-units-real-values';
-import { investmentModule } from './modules/investment.js?v=20260809-units-real-values';
-import { inflationModule } from './modules/inflation.js?v=20260809-units-real-values';
-import { loanModule } from './modules/loan.js?v=20260809-units-real-values';
-import { mortgageModule } from './modules/mortgage.js?v=20260809-units-real-values';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260809-units-real-values';
-import { renderKpis } from './ui/kpis.js?v=20260809-units-real-values';
-import { renderSchedule } from './ui/table.js?v=20260809-units-real-values';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260809-units-real-values';
-import { classes } from './ui/theme.js?v=20260809-units-real-values';
+import { pensionModule } from './modules/pension.js?v=20260810-rent-buy-polish';
+import { investmentModule } from './modules/investment.js?v=20260810-rent-buy-polish';
+import { inflationModule } from './modules/inflation.js?v=20260810-rent-buy-polish';
+import { loanModule } from './modules/loan.js?v=20260810-rent-buy-polish';
+import { mortgageModule } from './modules/mortgage.js?v=20260810-rent-buy-polish';
+import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-rent-buy-polish';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-rent-buy-polish';
+import { renderKpis } from './ui/kpis.js?v=20260810-rent-buy-polish';
+import { renderSchedule } from './ui/table.js?v=20260810-rent-buy-polish';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-rent-buy-polish';
+import { classes } from './ui/theme.js?v=20260810-rent-buy-polish';
 
 const modules = {
   [pensionModule.id]: pensionModule,
   [investmentModule.id]: investmentModule,
   [inflationModule.id]: inflationModule,
   [loanModule.id]: loanModule,
-  [mortgageModule.id]: mortgageModule
+  [mortgageModule.id]: mortgageModule,
+  [rentVsBuyModule.id]: rentVsBuyModule
 };
 
 const moduleState = Object.fromEntries(

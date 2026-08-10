@@ -88,6 +88,19 @@ details > summary::-webkit-details-marker {
   line-height: 1.35;
 }
 
+.rent-buy-results {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.rent-buy-explain[open] summary span:last-child {
+  transform: rotate(45deg);
+}
+
+.rent-buy-explain summary span:last-child {
+  transition: transform 160ms ease;
+}
+
 main,
 header,
 .app-layout,
@@ -237,6 +250,37 @@ header,
   #moduleExtraControls .info-tip,
   #kpiGrid .info-tip {
     transform: translateY(1px);
+  }
+
+  #kpiGrid .rent-buy-results article {
+    border-radius: 0.5rem;
+    border-width: 1px;
+    display: block;
+    padding: 1rem;
+  }
+
+  #kpiGrid .rent-buy-hero {
+    background-image: linear-gradient(to bottom right, rgba(16, 185, 129, 0.18), rgba(79, 70, 229, 0.18), rgba(14, 165, 233, 0.14));
+  }
+
+  #kpiGrid .rent-buy-groups {
+    display: grid;
+  }
+
+  #kpiGrid .rent-buy-group p {
+    text-align: left;
+  }
+
+  #kpiGrid .rent-buy-group-buying {
+    background: rgba(16, 185, 129, 0.06);
+  }
+
+  #kpiGrid .rent-buy-group-renting {
+    background: rgba(79, 70, 229, 0.06);
+  }
+
+  #kpiGrid .rent-buy-result-icon {
+    display: none;
   }
 }
 
