@@ -249,6 +249,6 @@ export function updatePayoutButtons(payoutType) {
   if (!flatButton || !indexedButton) return;
 
   const isFlat = payoutType === 'flat';
-  flatButton.className = `rounded px-2 py-1.5 text-xs font-medium transition ${isFlat ? 'bg-indigo-500 text-white shadow' : 'text-slate-300 hover:bg-white/10'}`;
-  indexedButton.className = `rounded px-2 py-1.5 text-xs font-medium transition ${!isFlat ? 'bg-emerald-500 text-slate-950 shadow' : 'text-slate-300 hover:bg-white/10'}`;
+  flatButton.className = `rounded px-2 py-1.5 text-xs font-medium transition ${isFlat ? classes.activePrimaryTab : classes.inactiveTab}`;
+  indexedButton.className = `rounded px-2 py-1.5 text-xs font-medium transition ${!isFlat ? classes.activeSecondaryTab : classes.inactiveTab}`;
 }

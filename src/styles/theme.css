@@ -1,6 +1,35 @@
 :root {
   color-scheme: dark;
   --color-page: #0f172a;
+  --ui-page: #0f172a;
+  --ui-panel: rgba(15, 23, 42, 0.8);
+  --ui-panel-strong: #020617;
+  --ui-panel-soft: rgba(255, 255, 255, 0.04);
+  --ui-card: rgba(255, 255, 255, 0.06);
+  --ui-border: rgba(255, 255, 255, 0.1);
+  --ui-border-strong: rgba(255, 255, 255, 0.15);
+  --ui-text: #f8fafc;
+  --ui-text-soft: #cbd5e1;
+  --ui-text-muted: #94a3b8;
+  --ui-input: #020617;
+  --ui-shadow: rgba(2, 6, 23, 0.2);
+  --ui-tooltip: #020617;
+  --ui-gradient-one: rgba(79, 70, 229, 0.16);
+  --ui-gradient-two: rgba(16, 185, 129, 0.13);
+  --chart-text: #f8fafc;
+  --chart-text-muted: #94a3b8;
+  --chart-text-soft: #cbd5e1;
+  --chart-panel: #020617;
+  --chart-border: rgba(255, 255, 255, 0.12);
+  --chart-grid: rgba(148, 163, 184, 0.12);
+  --chart-indigo: #818cf8;
+  --chart-emerald: #34d399;
+  --chart-pink: #f472b6;
+  --chart-indigo-bar: rgba(99, 102, 241, 0.58);
+  --chart-indigo-bar-strong: rgba(99, 102, 241, 0.62);
+  --chart-emerald-bar: rgba(52, 211, 153, 0.62);
+  --chart-emerald-bar-soft: rgba(16, 185, 129, 0.58);
+  --chart-pink-bar: rgba(244, 114, 182, 0.55);
   --color-accent-indigo-rgb: 79, 70, 229;
   --color-accent-emerald-rgb: 16, 185, 129;
   --color-range: #6366f1;
@@ -8,6 +37,96 @@
   --chart-height-mobile: 320px;
   --schedule-max-height: 520px;
   --schedule-max-height-mobile: 360px;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-page: #f8fafc;
+  --ui-page: #f8fafc;
+  --ui-panel: rgba(255, 255, 255, 0.92);
+  --ui-panel-strong: #ffffff;
+  --ui-panel-soft: rgba(15, 23, 42, 0.035);
+  --ui-card: rgba(255, 255, 255, 0.9);
+  --ui-border: rgba(15, 23, 42, 0.12);
+  --ui-border-strong: rgba(15, 23, 42, 0.18);
+  --ui-text: #0f172a;
+  --ui-text-soft: #334155;
+  --ui-text-muted: #64748b;
+  --ui-input: #ffffff;
+  --ui-shadow: rgba(15, 23, 42, 0.08);
+  --ui-tooltip: #ffffff;
+  --ui-gradient-one: rgba(59, 130, 246, 0.12);
+  --ui-gradient-two: rgba(16, 185, 129, 0.1);
+  --chart-text: #0f172a;
+  --chart-text-muted: #64748b;
+  --chart-text-soft: #334155;
+  --chart-panel: #ffffff;
+  --chart-border: rgba(15, 23, 42, 0.12);
+  --chart-grid: rgba(100, 116, 139, 0.18);
+  --chart-indigo: #4f46e5;
+  --chart-emerald: #059669;
+  --chart-pink: #db2777;
+}
+
+[data-theme="light"] #moduleExtraControls .grid {
+  background: rgba(15, 23, 42, 0.045) !important;
+  border-color: var(--ui-border) !important;
+}
+
+[data-theme="light"] #moduleExtraControls .grid button:not(.active-primary-tab):not(.active-secondary-tab),
+[data-theme="light"] #chartTabs button:not(.active-primary-tab):not(.active-secondary-tab) {
+  color: #334155 !important;
+}
+
+[data-theme="light"] #moduleExtraControls .grid button:not(.active-primary-tab):not(.active-secondary-tab):hover,
+[data-theme="light"] #chartTabs button:not(.active-primary-tab):not(.active-secondary-tab):hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] #kpiGrid .text-emerald-300 {
+  color: #059669 !important;
+}
+
+[data-theme="light"] #kpiGrid .text-indigo-200 {
+  color: #4f46e5 !important;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-page: #09090b;
+  --ui-page: #09090b;
+  --ui-panel: rgba(24, 24, 27, 0.86);
+  --ui-panel-strong: #18181b;
+  --ui-panel-soft: rgba(255, 255, 255, 0.045);
+  --ui-card: rgba(255, 255, 255, 0.055);
+  --ui-border: rgba(255, 255, 255, 0.11);
+  --ui-border-strong: rgba(255, 255, 255, 0.17);
+  --ui-text: #fafafa;
+  --ui-text-soft: #d4d4d8;
+  --ui-text-muted: #a1a1aa;
+  --ui-input: #09090b;
+  --ui-shadow: rgba(0, 0, 0, 0.28);
+  --ui-tooltip: #18181b;
+  --ui-gradient-one: rgba(113, 113, 122, 0.18);
+  --ui-gradient-two: rgba(63, 63, 70, 0.16);
+  --color-accent-indigo-rgb: 113, 113, 122;
+  --color-accent-emerald-rgb: 82, 82, 91;
+  --color-range: #a1a1aa;
+  --chart-text: #fafafa;
+  --chart-text-muted: #a1a1aa;
+  --chart-text-soft: #d4d4d8;
+  --chart-panel: #18181b;
+  --chart-border: rgba(255, 255, 255, 0.13);
+  --chart-grid: rgba(161, 161, 170, 0.14);
+  --chart-indigo: #93c5fd;
+  --chart-emerald: #6ee7b7;
+  --chart-pink: #f0abfc;
+  --chart-indigo-bar: rgba(96, 165, 250, 0.5);
+  --chart-indigo-bar-strong: rgba(147, 197, 253, 0.58);
+  --chart-emerald-bar: rgba(52, 211, 153, 0.52);
+  --chart-emerald-bar-soft: rgba(110, 231, 183, 0.48);
+  --chart-pink-bar: rgba(240, 171, 252, 0.46);
 }
 
 * {
@@ -22,9 +141,10 @@ body {
 
 body {
   background:
-    radial-gradient(circle at 15% 10%, rgba(var(--color-accent-indigo-rgb), 0.16), transparent 30rem),
-    radial-gradient(circle at 90% 5%, rgba(var(--color-accent-emerald-rgb), 0.13), transparent 26rem),
-    var(--color-page);
+    radial-gradient(circle at 15% 10%, var(--ui-gradient-one), transparent 30rem),
+    radial-gradient(circle at 90% 5%, var(--ui-gradient-two), transparent 26rem),
+    var(--ui-page);
+  color: var(--ui-text);
 }
 
 input[type="range"] {
@@ -36,7 +156,7 @@ input[type="range"] {
   top: 50%;
   z-index: 1;
   transform: translateY(-50%);
-  color: rgb(148, 163, 184);
+  color: var(--ui-text-muted);
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1;
@@ -82,6 +202,9 @@ details > summary::-webkit-details-marker {
   height: 1.25rem !important;
   min-height: 1.25rem;
   line-height: 1;
+  background: var(--ui-panel-soft);
+  border-color: var(--ui-border-strong) !important;
+  color: var(--ui-text-muted) !important;
 }
 
 .tip-text {
@@ -99,11 +222,11 @@ details > summary::-webkit-details-marker {
   z-index: 9999;
   width: max-content;
   max-width: min(17.5rem, calc(100vw - 1.5rem));
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--ui-border-strong);
   border-radius: 0.5rem;
-  background: rgb(2, 6, 23);
-  color: rgb(226, 232, 240);
-  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.45);
+  background: var(--ui-tooltip);
+  color: var(--ui-text-soft);
+  box-shadow: 0 20px 45px var(--ui-shadow);
   font-size: 0.75rem;
   font-weight: 400;
   line-height: 1.45;
@@ -128,6 +251,123 @@ details > summary::-webkit-details-marker {
 .rent-buy-results {
   grid-column: 1 / -1;
   width: 100%;
+}
+
+.theme-picker {
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-border);
+}
+
+.theme-trigger {
+  color: var(--ui-text);
+}
+
+.theme-trigger:hover {
+  background: var(--ui-panel-soft);
+}
+
+.theme-menu {
+  background: var(--ui-panel-strong);
+  border: 1px solid var(--ui-border);
+}
+
+.theme-option {
+  border: 1px solid transparent;
+  color: var(--ui-text-muted);
+}
+
+.theme-option:hover {
+  background: var(--ui-panel-soft);
+  color: var(--ui-text);
+}
+
+.theme-option.is-active {
+  background: var(--ui-card);
+  border-color: var(--ui-border-strong);
+  color: var(--ui-text);
+}
+
+.active-module-tab {
+  background: var(--ui-text);
+  color: var(--ui-page);
+}
+
+.active-primary-tab {
+  background: var(--chart-indigo) !important;
+  border: 1px solid var(--ui-border-strong);
+  color: #ffffff !important;
+}
+
+.active-secondary-tab {
+  background: var(--chart-emerald) !important;
+  border: 1px solid var(--ui-border-strong);
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .active-primary-tab,
+[data-theme="dark"] .active-secondary-tab {
+  color: #09090b !important;
+}
+
+.theme-swatch {
+  background: linear-gradient(90deg, var(--swatch-a) 0 50%, var(--swatch-b) 50% 100%);
+}
+
+.controls-panel,
+.results-panel > section,
+.results-panel > details {
+  background: var(--ui-panel) !important;
+  border-color: var(--ui-border) !important;
+  box-shadow: 0 25px 50px -12px var(--ui-shadow) !important;
+}
+
+#moduleTabs,
+#chartTabs,
+#moduleExtraControls > div,
+#controls details,
+.rent-buy-explain {
+  background: var(--ui-panel) !important;
+  border-color: var(--ui-border) !important;
+}
+
+.control-card,
+#kpiGrid article {
+  background: var(--ui-card) !important;
+  border-color: var(--ui-border) !important;
+}
+
+input,
+select,
+button[aria-pressed],
+#resetBtn {
+  background-color: var(--ui-input) !important;
+  border-color: var(--ui-border) !important;
+  color: var(--ui-text) !important;
+}
+
+thead,
+#scheduleHead {
+  background: var(--ui-panel-strong) !important;
+}
+
+header {
+  border-color: var(--ui-border) !important;
+}
+
+.border-white\/10,
+.divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ui-border) !important;
+}
+
+.text-white,
+.text-slate-100,
+.text-slate-200 {
+  color: var(--ui-text) !important;
+}
+
+.text-slate-300,
+.text-slate-400 {
+  color: var(--ui-text-muted) !important;
 }
 
 .rent-buy-explain[open] summary span:last-child {

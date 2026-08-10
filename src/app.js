@@ -1,15 +1,16 @@
-import { pensionModule } from './modules/pension.js?v=20260810-tooltips';
-import { investmentModule } from './modules/investment.js?v=20260810-tooltips';
-import { inflationModule } from './modules/inflation.js?v=20260810-tooltips';
-import { loanModule } from './modules/loan.js?v=20260810-tooltips';
-import { mortgageModule } from './modules/mortgage.js?v=20260810-tooltips';
-import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-tooltips';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-tooltips';
-import { renderKpis } from './ui/kpis.js?v=20260810-tooltips';
-import { renderSchedule } from './ui/table.js?v=20260810-tooltips';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-tooltips';
-import { classes } from './ui/theme.js?v=20260810-tooltips';
-import { initializeTooltips } from './ui/tooltips.js?v=20260810-tooltips';
+import { pensionModule } from './modules/pension.js?v=20260810-light-contrast-fix';
+import { investmentModule } from './modules/investment.js?v=20260810-light-contrast-fix';
+import { inflationModule } from './modules/inflation.js?v=20260810-light-contrast-fix';
+import { loanModule } from './modules/loan.js?v=20260810-light-contrast-fix';
+import { mortgageModule } from './modules/mortgage.js?v=20260810-light-contrast-fix';
+import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-light-contrast-fix';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-light-contrast-fix';
+import { renderKpis } from './ui/kpis.js?v=20260810-light-contrast-fix';
+import { renderSchedule } from './ui/table.js?v=20260810-light-contrast-fix';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-light-contrast-fix';
+import { classes } from './ui/theme.js?v=20260810-light-contrast-fix';
+import { initializeTooltips } from './ui/tooltips.js?v=20260810-light-contrast-fix';
+import { initializeThemePicker } from './ui/themePicker.js?v=20260810-light-contrast-fix';
 
 const modules = {
   [pensionModule.id]: pensionModule,
@@ -152,6 +153,11 @@ window.addEventListener('hashchange', () => {
 });
 
 renderModuleTabs();
+initializeThemePicker({
+  onThemeChange() {
+    calculateAndRender();
+  }
+});
 initializeTooltips();
 renderControlPanel();
 renderChartTabs({

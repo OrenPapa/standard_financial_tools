@@ -1,21 +1,21 @@
 import { colors } from './theme.js';
 
-const chartColorMap = {
-  text: colors.text,
-  principal: colors.indigo,
-  principalBar: colors.indigoBar,
-  principalBarStrong: colors.indigoBarStrong,
-  interest: colors.emerald,
-  interestBar: colors.emeraldBar,
-  interestBarSoft: colors.emeraldBarSoft,
-  cost: colors.pink,
-  costBar: colors.pinkBar,
-  balance: colors.text,
-  equity: colors.emerald,
-  income: colors.emerald
-};
-
 function resolveColor(colorKey, fallback = colors.text) {
+  const chartColorMap = {
+    text: colors.text,
+    principal: colors.indigo,
+    principalBar: colors.indigoBar,
+    principalBarStrong: colors.indigoBarStrong,
+    interest: colors.emerald,
+    interestBar: colors.emeraldBar,
+    interestBarSoft: colors.emeraldBarSoft,
+    cost: colors.pink,
+    costBar: colors.pinkBar,
+    balance: colors.text,
+    equity: colors.emerald,
+    income: colors.emerald
+  };
+
   return chartColorMap[colorKey] || colorKey || fallback;
 }
 
