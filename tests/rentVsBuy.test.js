@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { calculateRentVsBuy } from '../src/utils/rentVsBuy.js';
+import { runTest } from './helpers.js';
 
 const baseInput = {
   monthlyRent: 1000,
@@ -17,16 +18,6 @@ const baseInput = {
   monthlyPropertyTax: 0,
   monthlyInsurance: 0
 };
-
-function runTest(name, fn) {
-  try {
-    fn();
-    console.log(`ok - ${name}`);
-  } catch (error) {
-    console.error(`not ok - ${name}`);
-    throw error;
-  }
-}
 
 runTest('calculates rent increases annually', () => {
   const result = calculateRentVsBuy({
