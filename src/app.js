@@ -1,16 +1,16 @@
-import { pensionModule } from './modules/pension.js?v=20260810-mobile-tooltip-chart-fix';
-import { investmentModule } from './modules/investment.js?v=20260810-mobile-tooltip-chart-fix';
-import { inflationModule } from './modules/inflation.js?v=20260810-mobile-tooltip-chart-fix';
-import { loanModule } from './modules/loan.js?v=20260810-mobile-tooltip-chart-fix';
-import { mortgageModule } from './modules/mortgage.js?v=20260810-mobile-tooltip-chart-fix';
-import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-mobile-tooltip-chart-fix';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-mobile-tooltip-chart-fix';
-import { renderKpis } from './ui/kpis.js?v=20260810-mobile-tooltip-chart-fix';
-import { renderSchedule } from './ui/table.js?v=20260810-mobile-tooltip-chart-fix';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-mobile-tooltip-chart-fix';
-import { classes } from './ui/theme.js?v=20260810-mobile-tooltip-chart-fix';
-import { initializeTooltips } from './ui/tooltips.js?v=20260810-mobile-tooltip-chart-fix';
-import { initializeThemePicker } from './ui/themePicker.js?v=20260810-mobile-tooltip-chart-fix';
+import { pensionModule } from './modules/pension.js?v=20260810-initial-loader';
+import { investmentModule } from './modules/investment.js?v=20260810-initial-loader';
+import { inflationModule } from './modules/inflation.js?v=20260810-initial-loader';
+import { loanModule } from './modules/loan.js?v=20260810-initial-loader';
+import { mortgageModule } from './modules/mortgage.js?v=20260810-initial-loader';
+import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-initial-loader';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-initial-loader';
+import { renderKpis } from './ui/kpis.js?v=20260810-initial-loader';
+import { renderSchedule } from './ui/table.js?v=20260810-initial-loader';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-initial-loader';
+import { classes } from './ui/theme.js?v=20260810-initial-loader';
+import { initializeTooltips } from './ui/tooltips.js?v=20260810-initial-loader';
+import { initializeThemePicker } from './ui/themePicker.js?v=20260810-initial-loader';
 
 const modules = {
   [pensionModule.id]: pensionModule,
@@ -166,3 +166,14 @@ renderChartTabs({
   onTabChange: switchChart
 });
 calculateAndRender();
+hideInitialLoader();
+
+function hideInitialLoader() {
+  const loader = document.getElementById('appLoader');
+  if (!loader) return;
+
+  requestAnimationFrame(() => {
+    loader.classList.add('is-hidden');
+    window.setTimeout(() => loader.remove(), 220);
+  });
+}

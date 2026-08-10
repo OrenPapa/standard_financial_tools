@@ -147,6 +147,59 @@ body {
   color: var(--ui-text);
 }
 
+.app-loader {
+  align-items: center;
+  background:
+    radial-gradient(circle at 15% 10%, var(--ui-gradient-one), transparent 30rem),
+    radial-gradient(circle at 90% 5%, var(--ui-gradient-two), transparent 26rem),
+    var(--ui-page);
+  color: var(--ui-text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  inset: 0;
+  justify-content: center;
+  opacity: 1;
+  position: fixed;
+  transition: opacity 180ms ease, visibility 180ms ease;
+  visibility: visible;
+  z-index: 10000;
+}
+
+.app-loader.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.app-loader-mark {
+  animation: loaderPulse 900ms ease-in-out infinite;
+  background: linear-gradient(90deg, var(--chart-indigo) 0 50%, var(--chart-emerald) 50% 100%);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 999px;
+  height: 2rem;
+  width: 2rem;
+}
+
+.app-loader-text {
+  color: var(--ui-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes loaderPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.86);
+  }
+}
+
 input[type="range"] {
   accent-color: var(--color-range);
 }
