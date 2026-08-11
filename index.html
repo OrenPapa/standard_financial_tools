@@ -19,7 +19,7 @@
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="./src/styles/theme.css?v=20260811-advanced-toggle" />
+  <link rel="stylesheet" href="./src/styles/theme.css?v=20260811-result-loaders" />
   <script>
     tailwind.config = {
       theme: {
@@ -62,7 +62,7 @@
       <div class="results-panel space-y-6">
         <section id="kpiGrid" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"></section>
 
-        <section class="rounded-lg border border-white/10 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/20">
+        <section id="chartSection" class="relative rounded-lg border border-white/10 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/20">
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 id="chartTitle" class="font-semibold text-white">Annual Portfolio Growth</h2>
@@ -72,6 +72,10 @@
           </div>
           <div id="primaryChartPanel" class="chart-box"><canvas id="primaryChart"></canvas></div>
           <div id="secondaryChartPanel" class="chart-box hidden"><canvas id="secondaryChart"></canvas></div>
+          <div id="chartLoader" class="result-loader hidden" aria-live="polite" aria-label="Updating chart">
+            <span class="result-loader-spinner" aria-hidden="true"></span>
+            <span>Updating...</span>
+          </div>
         </section>
 
         <details open class="rounded-lg border border-white/10 bg-slate-900/80 shadow-2xl shadow-slate-950/20">
@@ -79,17 +83,21 @@
             <span id="tableTitle" class="font-semibold text-white">Annual Accumulation Schedule</span>
             <span class="schedule-chevron" aria-hidden="true"></span>
           </summary>
-          <div class="schedule-scroll border-t border-white/10">
+          <div id="scheduleScroll" class="schedule-scroll relative border-t border-white/10">
             <table class="min-w-full text-left text-sm">
               <thead id="scheduleHead" class="sticky top-0 z-10 bg-slate-900 text-xs uppercase tracking-wider text-slate-400"></thead>
               <tbody id="scheduleBody" class="divide-y divide-white/10"></tbody>
             </table>
+            <div id="scheduleLoader" class="result-loader hidden" aria-live="polite" aria-label="Updating schedule">
+              <span class="result-loader-spinner" aria-hidden="true"></span>
+              <span>Updating...</span>
+            </div>
           </div>
         </details>
       </div>
     </section>
   </main>
 
-  <script type="module" src="./src/app.js?v=20260811-advanced-toggle"></script>
+  <script type="module" src="./src/app.js?v=20260811-result-loaders"></script>
 </body>
 </html>

@@ -38,6 +38,10 @@ const appState = {
 };
 let scheduleRenderFrame = 0;
 let scheduleRenderVersion = 0;
+let chartRenderFrame = 0;
+let chartRenderVersion = 0;
+const RESULT_LOADER_DELAY_MS = 120;
+const resultLoaderTimers = new Map();
 
 function initialModuleId() {
   const hashId = window.location.hash.replace('#', '');
@@ -112,7 +116,7 @@ function renderControlPanel() {
     onAdvancedToggle(nextEnabled) {
       appState.advancedEnabledByModule[module.id] = nextEnabled;
       renderControlPanel();
-      calculateAndRender({ deferSchedule: true });
+      calculateAndRender({ deferCharts: true, deferSchedule: true, showLoaders: true });
     }
   });
 }
@@ -120,6 +124,12 @@ function renderControlPanel() {
 function calculateAndRender(options = {}) {
   const module = activeModule();
   const state = activeState();
+  const showLoaders = Boolean(options.showLoaders);
+
+  if (showLoaders) {
+    startDelayedResultLoader('chartLoader');
+    startDelayedResultLoader('scheduleLoader');
+  }
 
   const changedIds = module.validateState?.(state) || [];
   changedIds.forEach(id => syncControl({ module, state, id }));
@@ -136,7 +146,12 @@ function calculateAndRender(options = {}) {
     table: result.table,
     defer: Boolean(options.deferSchedule)
   });
-  renderCharts({ charts: result.charts, activeChart: appState.activeChart });
+  renderResultCharts({
+    charts: result.charts,
+    activeChart: appState.activeChart,
+    defer: Boolean(options.deferCharts),
+    moduleId: module.id
+  });
   updateChartTabs({ module, activeChart: appState.activeChart });
 }
 
@@ -146,6 +161,7 @@ function renderResultSchedule({ module, table, defer }) {
   if (!defer) {
     cancelDeferredScheduleRender();
     renderSchedule(visibleTable);
+    stopResultLoader('scheduleLoader');
     return;
   }
 
@@ -156,6 +172,7 @@ function renderResultSchedule({ module, table, defer }) {
     scheduleRenderFrame = 0;
     if (renderVersion !== scheduleRenderVersion || appState.activeModuleId !== moduleId) return;
     renderSchedule(visibleTable);
+    stopResultLoader('scheduleLoader');
   });
 }
 
@@ -164,6 +181,48 @@ function cancelDeferredScheduleRender() {
   if (!scheduleRenderFrame) return;
   cancelAnimationFrame(scheduleRenderFrame);
   scheduleRenderFrame = 0;
+}
+
+function renderResultCharts({ charts, activeChart, defer, moduleId }) {
+  if (!defer) {
+    cancelDeferredChartRender();
+    renderCharts({ charts, activeChart });
+    stopResultLoader('chartLoader');
+    return;
+  }
+
+  cancelDeferredChartRender();
+  const renderVersion = ++chartRenderVersion;
+  chartRenderFrame = requestAnimationFrame(() => {
+    chartRenderFrame = 0;
+    if (renderVersion !== chartRenderVersion || appState.activeModuleId !== moduleId) return;
+    renderCharts({ charts, activeChart });
+    stopResultLoader('chartLoader');
+  });
+}
+
+function cancelDeferredChartRender() {
+  chartRenderVersion++;
+  if (!chartRenderFrame) return;
+  cancelAnimationFrame(chartRenderFrame);
+  chartRenderFrame = 0;
+}
+
+function startDelayedResultLoader(id) {
+  stopResultLoader(id);
+  resultLoaderTimers.set(id, window.setTimeout(() => {
+    resultLoaderTimers.delete(id);
+    document.getElementById(id)?.classList.remove('hidden');
+  }, RESULT_LOADER_DELAY_MS));
+}
+
+function stopResultLoader(id) {
+  const timer = resultLoaderTimers.get(id);
+  if (timer) {
+    window.clearTimeout(timer);
+    resultLoaderTimers.delete(id);
+  }
+  document.getElementById(id)?.classList.add('hidden');
 }
 
 function switchModule(moduleId) {

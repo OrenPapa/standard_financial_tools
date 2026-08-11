@@ -241,6 +241,35 @@ details > summary::-webkit-details-marker {
   overflow: auto;
 }
 
+.result-loader {
+  align-items: center;
+  background: color-mix(in srgb, var(--ui-panel-strong) 72%, transparent);
+  color: var(--ui-text-soft);
+  display: flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  inset: 0;
+  justify-content: center;
+  position: absolute;
+  z-index: 20;
+}
+
+.result-loader-spinner {
+  animation: resultLoaderSpin 720ms linear infinite;
+  border: 2px solid var(--ui-border-strong);
+  border-top-color: var(--chart-emerald);
+  border-radius: 999px;
+  height: 1rem;
+  width: 1rem;
+}
+
+@keyframes resultLoaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .schedule-chevron {
   border-bottom: 2px solid var(--ui-text-muted);
   border-right: 2px solid var(--ui-text-muted);
