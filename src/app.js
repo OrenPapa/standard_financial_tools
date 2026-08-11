@@ -36,6 +36,8 @@ const appState = {
       .map(module => [module.id, false])
   )
 };
+let scheduleRenderFrame = 0;
+let scheduleRenderVersion = 0;
 
 function initialModuleId() {
   const hashId = window.location.hash.replace('#', '');
@@ -110,12 +112,12 @@ function renderControlPanel() {
     onAdvancedToggle(nextEnabled) {
       appState.advancedEnabledByModule[module.id] = nextEnabled;
       renderControlPanel();
-      calculateAndRender();
+      calculateAndRender({ deferSchedule: true });
     }
   });
 }
 
-function calculateAndRender() {
+function calculateAndRender(options = {}) {
   const module = activeModule();
   const state = activeState();
 
@@ -129,9 +131,39 @@ function calculateAndRender() {
   document.getElementById('featureTitle').textContent = module.title;
   updateModuleTabs();
   renderKpis(result.kpis);
-  renderSchedule(visibleTableForAdvanced(module, result.table, advancedIsEnabled(module.id)));
+  renderResultSchedule({
+    module,
+    table: result.table,
+    defer: Boolean(options.deferSchedule)
+  });
   renderCharts({ charts: result.charts, activeChart: appState.activeChart });
   updateChartTabs({ module, activeChart: appState.activeChart });
+}
+
+function renderResultSchedule({ module, table, defer }) {
+  const visibleTable = visibleTableForAdvanced(module, table, advancedIsEnabled(module.id));
+
+  if (!defer) {
+    cancelDeferredScheduleRender();
+    renderSchedule(visibleTable);
+    return;
+  }
+
+  cancelDeferredScheduleRender();
+  const renderVersion = ++scheduleRenderVersion;
+  const moduleId = module.id;
+  scheduleRenderFrame = requestAnimationFrame(() => {
+    scheduleRenderFrame = 0;
+    if (renderVersion !== scheduleRenderVersion || appState.activeModuleId !== moduleId) return;
+    renderSchedule(visibleTable);
+  });
+}
+
+function cancelDeferredScheduleRender() {
+  scheduleRenderVersion++;
+  if (!scheduleRenderFrame) return;
+  cancelAnimationFrame(scheduleRenderFrame);
+  scheduleRenderFrame = 0;
 }
 
 function switchModule(moduleId) {
