@@ -1,6 +1,6 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
-import { realValueLabel } from '../utils/inflation.js';
+import { realValueAt } from '../utils/inflation.js';
 import { barDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
@@ -144,7 +144,9 @@ export const mortgageModule = {
   calculate(state) {
     const result = amortizeMortgage(state);
     const realPaymentYear = Math.min(15, Math.max(1, result.payoffYears));
-    const realMonthlyCostSubvalue = `Year ${realPaymentYear.toFixed(realPaymentYear % 1 ? 1 : 0)}: ${realValueLabel(result.totalMonthlyPayment, state.annualInflationRate, realPaymentYear, eurosPrecise).replace('Today: ', '')} today`;
+    const realMonthlyCostSubvalue = state.annualInflationRate > 0
+      ? `Year ${realPaymentYear.toFixed(realPaymentYear % 1 ? 1 : 0)}: ${eurosPrecise.format(realValueAt(result.totalMonthlyPayment, state.annualInflationRate, realPaymentYear))}`
+      : '';
 
     return {
       kpis: [

@@ -52,3 +52,26 @@ runTest('mortgage ownership costs are included in monthly schedule', () => {
   assert.equal(firstRow.hoa, 50);
   assert.equal(firstRow.totalMonthly, 10270);
 });
+
+runTest('mortgage monthly cost subvalue shows year buying power when inflation is active', () => {
+  const result = mortgageModule.calculate({
+    ...clone(mortgageModule.defaultState),
+    annualInflationRate: 3
+  });
+  const estimatedMonthlyCost = result.kpis.find(kpi => kpi.label === 'Estimated Monthly Cost');
+  const nominalAmount = Number(estimatedMonthlyCost.value.replace('€', '').replace(/,/g, ''));
+  const displayAmount = Number(estimatedMonthlyCost.subvalue.replace('Year 15: €', '').replace(/,/g, ''));
+
+  assert.match(estimatedMonthlyCost.subvalue, /^Year 15: €[\d,.]+$/);
+  assert.ok(displayAmount < nominalAmount);
+});
+
+runTest('mortgage monthly cost subvalue is hidden when inflation is inactive', () => {
+  const result = mortgageModule.calculate({
+    ...clone(mortgageModule.defaultState),
+    annualInflationRate: 0
+  });
+  const estimatedMonthlyCost = result.kpis.find(kpi => kpi.label === 'Estimated Monthly Cost');
+
+  assert.equal(estimatedMonthlyCost.subvalue, '');
+});
