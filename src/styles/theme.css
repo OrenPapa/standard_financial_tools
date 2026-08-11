@@ -378,9 +378,15 @@ details > summary::-webkit-details-marker {
 #chartTabs,
 #moduleExtraControls > div,
 #controls details,
+#controls .advanced-settings,
 .rent-buy-explain {
   background: var(--ui-panel) !important;
   border-color: var(--ui-border) !important;
+}
+
+#controls .advanced-settings button[data-advanced-toggle] {
+  background-color: transparent !important;
+  border-color: transparent !important;
 }
 
 .control-card,

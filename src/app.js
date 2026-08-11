@@ -1,16 +1,17 @@
 import { pensionModule } from './modules/pension.js?v=20260810-year-input-format';
-import { investmentModule } from './modules/investment.js?v=20260810-year-input-format';
+import { investmentModule } from './modules/investment.js?v=20260811-advanced-toggle';
 import { inflationModule } from './modules/inflation.js?v=20260810-year-input-format';
-import { loanModule } from './modules/loan.js?v=20260810-year-input-format';
-import { mortgageModule } from './modules/mortgage.js?v=20260810-year-input-format';
-import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260810-year-input-format';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260810-year-input-format';
+import { loanModule } from './modules/loan.js?v=20260811-advanced-toggle';
+import { mortgageModule } from './modules/mortgage.js?v=20260811-advanced-toggle';
+import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260811-advanced-toggle';
+import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260811-advanced-toggle';
 import { renderKpis } from './ui/kpis.js?v=20260810-year-input-format';
 import { renderSchedule } from './ui/table.js?v=20260810-year-input-format';
 import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-year-input-format';
 import { classes } from './ui/theme.js?v=20260810-year-input-format';
 import { initializeTooltips } from './ui/tooltips.js?v=20260810-year-input-format';
 import { initializeThemePicker } from './ui/themePicker.js?v=20260810-year-input-format';
+import { calculationStateForAdvanced, hasAdvancedControls, visibleTableForAdvanced } from './utils/advancedState.js?v=20260811-advanced-toggle';
 
 const modules = {
   [pensionModule.id]: pensionModule,
@@ -28,7 +29,12 @@ const moduleState = Object.fromEntries(
 const appState = {
   activeModuleId: initialModuleId(),
   activeChart: 'primary',
-  payoutType: 'indexed'
+  payoutType: 'indexed',
+  advancedEnabledByModule: Object.fromEntries(
+    Object.values(modules)
+      .filter(hasAdvancedControls)
+      .map(module => [module.id, false])
+  )
 };
 
 function initialModuleId() {
@@ -42,6 +48,10 @@ function activeModule() {
 
 function activeState() {
   return moduleState[appState.activeModuleId];
+}
+
+function advancedIsEnabled(moduleId) {
+  return Boolean(appState.advancedEnabledByModule[moduleId]);
 }
 
 function renderModuleTabs() {
@@ -92,7 +102,17 @@ function renderControlPanel() {
       calculateAndRender();
     }
   });
-  renderControls({ module, state, onChange: setControlValue });
+  renderControls({
+    module,
+    state,
+    onChange: setControlValue,
+    advancedEnabled: advancedIsEnabled(module.id),
+    onAdvancedToggle(nextEnabled) {
+      appState.advancedEnabledByModule[module.id] = nextEnabled;
+      renderControlPanel();
+      calculateAndRender();
+    }
+  });
 }
 
 function calculateAndRender() {
@@ -102,13 +122,14 @@ function calculateAndRender() {
   const changedIds = module.validateState?.(state) || [];
   changedIds.forEach(id => syncControl({ module, state, id }));
 
-  const result = module.calculate(state, appState);
+  const calculationState = calculationStateForAdvanced(module, state, advancedIsEnabled(module.id));
+  const result = module.calculate(calculationState, appState);
 
   document.getElementById('featureEyebrow').textContent = module.eyebrow;
   document.getElementById('featureTitle').textContent = module.title;
   updateModuleTabs();
   renderKpis(result.kpis);
-  renderSchedule(result.table);
+  renderSchedule(visibleTableForAdvanced(module, result.table, advancedIsEnabled(module.id)));
   renderCharts({ charts: result.charts, activeChart: appState.activeChart });
   updateChartTabs({ module, activeChart: appState.activeChart });
 }
@@ -131,15 +152,17 @@ function switchModule(moduleId) {
 
 function switchChart(chartId) {
   appState.activeChart = chartId;
-  const result = activeModule().calculate(activeState(), appState);
+  const module = activeModule();
+  const result = module.calculate(calculationStateForAdvanced(module, activeState(), advancedIsEnabled(module.id)), appState);
   renderCharts({ charts: result.charts, activeChart: appState.activeChart });
-  updateChartTabs({ module: activeModule(), activeChart: appState.activeChart });
+  updateChartTabs({ module, activeChart: appState.activeChart });
 }
 
 document.getElementById('resetBtn').addEventListener('click', () => {
   const module = activeModule();
   moduleState[module.id] = { ...module.defaultState };
   appState.activeChart = 'primary';
+  if (hasAdvancedControls(module)) appState.advancedEnabledByModule[module.id] = false;
   if (module.id === 'pension') appState.payoutType = 'indexed';
   renderControlPanel();
   calculateAndRender();

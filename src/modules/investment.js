@@ -105,6 +105,7 @@ export const investmentModule = {
   title: 'Investment Growth & Income',
   defaultState,
   controls,
+  advancedTableColumnKeys: ['grossIncome', 'taxPaid'],
   chartTabs: {
     primary: 'Growth',
     secondary: 'Income'

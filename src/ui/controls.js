@@ -14,26 +14,27 @@ function controlDisplayValue(meta, value, state, moduleId) {
   return formatNumberForInput(meta, value);
 }
 
-function renderControl(meta, state, moduleId) {
+function renderControl(meta, state, moduleId, options = {}) {
   const value = state[meta.id];
+  const disabled = Boolean(options.disabled);
   const incomeIsActive = moduleId === 'investment' && Number(state.incomeYield) > 0 && state.incomeFrequency !== 'none';
-  const checkboxDisabled = meta.id === 'reinvestIncome' && !incomeIsActive;
+  const checkboxDisabled = disabled || (meta.id === 'reinvestIncome' && !incomeIsActive);
   const displayValue = controlDisplayValue(meta, value, state, moduleId);
-  const affixedNumberInput = inputMarkup(meta, value, meta.control === 'number' ? 'px-3 py-2 text-right' : 'px-2 py-1.5 text-right');
+  const affixedNumberInput = inputMarkup(meta, value, meta.control === 'number' ? 'px-3 py-2 text-right' : 'px-2 py-1.5 text-right', disabled);
 
   const controlField = meta.type === 'select'
-    ? `<select id="${meta.id}" data-id="${meta.id}" class="${classes.inputBase} px-2 py-2">${meta.options.map(([optionValue, label]) => `<option value="${optionValue}" ${value === optionValue ? 'selected' : ''}>${label}</option>`).join('')}</select>`
+    ? `<select id="${meta.id}" data-id="${meta.id}" ${disabled ? 'disabled' : ''} class="${classes.inputBase} px-2 py-2 disabled:cursor-not-allowed disabled:opacity-60">${meta.options.map(([optionValue, label]) => `<option value="${optionValue}" ${value === optionValue ? 'selected' : ''}>${label}</option>`).join('')}</select>`
     : meta.type === 'checkbox'
       ? `<button id="${meta.id}" data-id="${meta.id}" type="button" aria-pressed="${value}" ${checkboxDisabled ? 'disabled' : ''} class="w-full rounded-md border border-white/10 px-3 py-2 text-sm font-medium transition ${checkboxDisabled ? 'cursor-not-allowed bg-slate-950/60 text-slate-500' : value ? 'bg-emerald-500 text-slate-950' : 'bg-slate-950 text-slate-300'}">${checkboxDisabled ? 'No income to reinvest' : value ? 'Enabled' : 'Disabled'}</button>`
       : meta.control === 'number'
         ? affixedNumberInput
       : `<div class="control-range-grid grid grid-cols-[1fr_88px] items-center gap-3">
-          <input id="${meta.id}" data-id="${meta.id}" data-control-kind="range" type="range" min="${meta.min}" max="${meta.max}" step="${meta.step}" value="${value}" class="h-2 w-full cursor-pointer rounded-lg bg-slate-700">
+          <input id="${meta.id}" data-id="${meta.id}" data-control-kind="range" type="range" min="${meta.min}" max="${meta.max}" step="${meta.step}" value="${value}" ${disabled ? 'disabled' : ''} class="h-2 w-full cursor-pointer rounded-lg bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
           ${affixedNumberInput}
         </div>`;
 
   return `
-    <label class="${classes.controlCard}" for="${meta.id}">
+    <label class="${classes.controlCard} ${disabled ? 'opacity-60' : ''}" for="${meta.id}">
       <div class="mb-2 flex items-center justify-between gap-3">
         <span class="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-200">
           <span class="min-w-0">${meta.label}</span>
@@ -46,7 +47,7 @@ function renderControl(meta, state, moduleId) {
   `;
 }
 
-function inputMarkup(meta, value, inputPaddingClasses) {
+function inputMarkup(meta, value, inputPaddingClasses, disabled = false) {
   const prefix = (meta.prefix || '').trim() === 'EUR' ? '€' : (meta.prefix || '').trim();
   const suffix = (meta.suffix || '').trim();
   const hasPrefix = Boolean(prefix);
@@ -60,7 +61,7 @@ function inputMarkup(meta, value, inputPaddingClasses) {
   return `
     <span class="input-affix-shell relative block">
       ${hasPrefix ? `<span class="input-affix input-affix-prefix">${prefix}</span>` : ''}
-      <input id="${meta.id}Number" data-id="${meta.id}" data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(meta, value)}" class="${classes.inputBase} numeric-input ${paddingClasses}">
+      <input id="${meta.id}Number" data-id="${meta.id}" data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(meta, value)}" ${disabled ? 'disabled' : ''} class="${classes.inputBase} numeric-input ${paddingClasses} disabled:cursor-not-allowed disabled:opacity-60">
       ${hasSuffix ? `<span class="input-affix input-affix-suffix">${suffix}</span>` : ''}
     </span>
   `;
@@ -69,7 +70,7 @@ function inputMarkup(meta, value, inputPaddingClasses) {
 const numberDebounceTimers = new Map();
 const NUMBER_INPUT_DEBOUNCE_MS = 500;
 
-export function renderControls({ module, state, onChange }) {
+export function renderControls({ module, state, onChange, advancedEnabled = false, onAdvancedToggle }) {
   const controls = document.getElementById('controls');
   const basicControls = module.controls.filter(meta => !meta.advanced);
   const advancedControls = module.controls.filter(meta => meta.advanced);
@@ -77,15 +78,25 @@ export function renderControls({ module, state, onChange }) {
   controls.innerHTML = `
     <div class="space-y-4">${basicControls.map(meta => renderControl(meta, state, module.id)).join('')}</div>
     ${advancedControls.length ? `
-      <details class="rounded-lg border border-white/10 bg-slate-950/40">
-        <summary class="flex cursor-pointer items-center justify-between px-3 py-3 text-sm font-semibold text-slate-200">
-          <span>Advanced settings</span>
-          <span class="text-xs font-normal text-slate-400">Optional</span>
-        </summary>
-        <div class="space-y-4 border-t border-white/10 p-3">${advancedControls.map(meta => renderControl(meta, state, module.id)).join('')}</div>
-      </details>
+      <section class="advanced-settings rounded-lg border border-white/10 bg-slate-950/40" aria-label="Advanced settings">
+        <div class="flex items-center justify-between gap-3 px-3 py-3">
+          <span class="min-w-0 text-sm font-semibold text-slate-200">Advanced settings <span class="text-xs font-normal text-slate-400">(optional)</span></span>
+          <button id="${module.id}AdvancedToggle" data-advanced-toggle type="button" role="switch" aria-checked="${advancedEnabled}" aria-expanded="${advancedEnabled}" aria-controls="${module.id}AdvancedFields" aria-label="Toggle advanced settings" class="inline-flex shrink-0 items-center p-0">
+            <span class="relative h-5 w-9 rounded-full transition ${advancedEnabled ? 'bg-emerald-500' : 'bg-slate-700'}">
+              <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${advancedEnabled ? 'left-[1.125rem]' : 'left-0.5'}"></span>
+            </span>
+          </button>
+        </div>
+        ${advancedEnabled ? `<div id="${module.id}AdvancedFields" class="space-y-4 border-t border-white/10 p-3">${advancedControls.map(meta => renderControl(meta, state, module.id)).join('')}</div>` : ''}
+      </section>
     ` : ''}
   `;
+
+  controls.querySelectorAll('button[data-advanced-toggle]').forEach(button => {
+    button.addEventListener('click', () => {
+      onAdvancedToggle?.(!advancedEnabled);
+    });
+  });
 
   controls.querySelectorAll('input, select').forEach(input => {
     input.addEventListener('input', event => {
@@ -158,11 +169,50 @@ function commitNumberInput(input, module, state, onChange, options = {}) {
   onChange(id, nextValue);
 }
 
-function parseNumberInput(value) {
+export function parseNumberInput(value) {
   if (typeof value !== 'string') return Number(value);
-  const normalized = value.replace(/,/g, '').replace(/\s/g, '').trim();
-  if (normalized === '' || normalized === '-' || normalized === '.') return NaN;
+  const compact = value.replace(/\s/g, '').trim();
+  if (compact === '') return 0;
+  if (compact === '-' || compact === '.' || compact === ',') return NaN;
+  const normalized = normalizeNumericSeparators(compact);
   return Number(normalized);
+}
+
+function normalizeNumericSeparators(value) {
+  const commaCount = (value.match(/,/g) || []).length;
+  const dotCount = (value.match(/\./g) || []).length;
+
+  if (commaCount && dotCount) {
+    const decimalSeparator = value.lastIndexOf(',') > value.lastIndexOf('.') ? ',' : '.';
+    const thousandsSeparator = decimalSeparator === ',' ? '.' : ',';
+    return value.split(thousandsSeparator).join('').replace(decimalSeparator, '.');
+  }
+
+  if (commaCount) {
+    return normalizeSingleSeparator(value, ',');
+  }
+
+  if (dotCount > 1) {
+    return normalizeSingleSeparator(value, '.');
+  }
+
+  return value;
+}
+
+function normalizeSingleSeparator(value, separator) {
+  const parts = value.split(separator);
+  const sign = parts[0].startsWith('-') ? '-' : '';
+  const firstGroup = sign ? parts[0].slice(1) : parts[0];
+  const restGroups = parts.slice(1);
+  const looksLikeThousands = restGroups.length > 0
+    && restGroups.every(group => /^\d{3}$/.test(group))
+    && /^\d+$/.test(firstGroup);
+
+  if (looksLikeThousands) {
+    return sign + firstGroup + restGroups.join('');
+  }
+
+  return value.replace(separator, '.');
 }
 
 function fractionDigitsForStep(step) {

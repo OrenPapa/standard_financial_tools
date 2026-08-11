@@ -125,6 +125,7 @@ export const loanModule = {
   title: 'Loan Payment & Amortization',
   defaultState,
   controls,
+  advancedTableColumnKeys: ['fees'],
   chartTabs: {
     primary: 'Balance',
     secondary: 'Cost'

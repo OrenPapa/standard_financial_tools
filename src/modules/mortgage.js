@@ -129,6 +129,7 @@ export const mortgageModule = {
   title: 'Mortgage Payment',
   defaultState,
   controls,
+  advancedTableColumnKeys: ['taxes', 'pmi'],
   chartTabs: {
     primary: 'Balance',
     secondary: 'Cost'

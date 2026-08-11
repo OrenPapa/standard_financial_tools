@@ -77,6 +77,7 @@ export const rentVsBuyModule = {
   title: 'Rent vs Buy Calculator',
   defaultState,
   controls,
+  advancedTableColumnKeys: ['saleProfitTax'],
   chartTabs: {
     primary: 'Cost',
     secondary: 'Home Value'
