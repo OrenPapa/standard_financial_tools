@@ -11,6 +11,7 @@ import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v
 import { classes } from './ui/theme.js?v=20260810-year-input-format';
 import { initializeTooltips } from './ui/tooltips.js?v=20260810-year-input-format';
 import { initializeThemePicker } from './ui/themePicker.js?v=20260810-year-input-format';
+import { initializeHeaderAuth } from './ui/auth.js?v=20260812-auth-page';
 import { calculationStateForAdvanced, hasAdvancedControls, visibleTableForAdvanced } from './utils/advancedState.js?v=20260811-advanced-toggle';
 
 const modules = {
@@ -275,6 +276,7 @@ window.addEventListener('hashchange', () => {
 });
 
 renderModuleTabs();
+initializeHeaderAuth();
 initializeThemePicker({
   onThemeChange() {
     calculateAndRender();
