@@ -6,7 +6,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 
 import { auth } from '../firebase.js?v=20260812-firebase-auth';
-import { validateAuthFieldErrors } from '../utils/authValidation.js?v=20260812-auth-validation';
+import { validateAuthFieldErrors } from '../utils/authValidation.js?v=20260812-profile-menu';
 
 const AUTH_ERRORS = {
   'auth/email-already-in-use': 'That email already has an account.',
@@ -37,41 +37,81 @@ export function initializeHeaderAuth() {
   if (!container) return;
 
   container.innerHTML = `
-    <section class="auth-panel auth-panel-header" aria-label="Account">
-      <a id="authLoginLink" class="auth-button auth-button-primary auth-login-link" href="./login.html">
-        <svg class="auth-button-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-          <path d="M10 17l5-5-5-5"></path>
-          <path d="M15 12H3"></path>
+    <section class="profile-menu-shell" aria-label="Account">
+      <button id="profileMenuTrigger" class="profile-trigger is-loading" type="button" aria-haspopup="dialog" aria-expanded="false" disabled>
+        <span id="profileAvatar" class="profile-avatar"><span class="profile-avatar-loader" aria-hidden="true"></span></span>
+        <svg class="profile-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"></path>
         </svg>
-        <span>Login</span>
-      </a>
-      <div id="authUser" class="auth-user hidden">
-        <span id="authUserEmail" class="auth-user-email"></span>
-        <button id="authSignOutBtn" class="auth-button" type="button">Sign out</button>
+      </button>
+      <div id="profileMenu" class="profile-menu hidden" role="dialog" aria-label="Profile menu">
+        <div class="profile-menu-header">
+          <span id="profileMenuAvatar" class="profile-avatar profile-avatar-large">G</span>
+          <div class="profile-menu-user">
+            <span class="profile-menu-label">Account</span>
+            <span id="profileMenuEmail" class="profile-menu-email">Guest</span>
+          </div>
+        </div>
+        <div class="profile-menu-section" data-guest-actions>
+          <a class="auth-button auth-button-primary profile-menu-action" href="./login.html">Login</a>
+          <a class="auth-button profile-menu-action" href="./login.html?mode=register">Register</a>
+        </div>
+        <div class="profile-menu-section profile-theme-row">
+          <span class="profile-menu-label">Theme:</span>
+          <div id="themePicker" class="theme-picker profile-theme-picker relative inline-flex rounded-md p-0.5"></div>
+        </div>
+        <div class="profile-menu-section hidden" data-user-actions>
+          <button id="authSignOutBtn" class="auth-button profile-menu-action" type="button">
+            <span id="authSignOutLabel">Logout</span>
+          </button>
+        </div>
+        <p id="authMessage" class="auth-message profile-menu-message" aria-live="polite"></p>
       </div>
-      <p id="authMessage" class="auth-message" aria-live="polite"></p>
     </section>
   `;
 
-  const loginLink = document.getElementById('authLoginLink');
+  const trigger = document.getElementById('profileMenuTrigger');
+  const menu = document.getElementById('profileMenu');
+  const avatar = document.getElementById('profileAvatar');
+  const menuAvatar = document.getElementById('profileMenuAvatar');
+  const menuEmail = document.getElementById('profileMenuEmail');
+  const guestActions = container.querySelector('[data-guest-actions]');
+  const userActions = container.querySelector('[data-user-actions]');
   const signOutButton = document.getElementById('authSignOutBtn');
-  const userPanel = document.getElementById('authUser');
-  const userEmail = document.getElementById('authUserEmail');
+  const signOutLabel = document.getElementById('authSignOutLabel');
   const message = document.getElementById('authMessage');
 
-  signOutButton.addEventListener('click', () => {
-    authenticate(() => signOut(auth), {
+  trigger.addEventListener('click', event => {
+    event.stopPropagation();
+    setProfileMenuOpen(menu.classList.contains('hidden'), trigger, menu);
+  });
+
+  signOutButton.addEventListener('click', async () => {
+    setSignOutLoading(true, signOutButton, signOutLabel);
+    const success = await authenticate(() => signOut(auth), {
       messageElement: message
     });
+    setSignOutLoading(false, signOutButton, signOutLabel);
+    if (success) setProfileMenuOpen(false, trigger, menu);
   });
 
   onAuthStateChanged(auth, user => {
     const signedIn = Boolean(user);
-    loginLink.classList.toggle('hidden', signedIn);
-    userPanel.classList.toggle('hidden', !signedIn);
-    userEmail.textContent = user?.email || '';
+    const label = user?.email || 'Guest';
+    const avatarText = signedIn ? label.trim().charAt(0).toUpperCase() : 'G';
+    trigger.disabled = false;
+    trigger.classList.remove('is-loading');
+    avatar.textContent = avatarText;
+    menuAvatar.textContent = avatarText;
+    menuEmail.textContent = label;
+    guestActions.classList.toggle('hidden', signedIn);
+    userActions.classList.toggle('hidden', !signedIn);
     message.textContent = signedIn ? '' : message.textContent;
+  });
+
+  document.addEventListener('click', event => {
+    if (container.contains(event.target)) return;
+    setProfileMenuOpen(false, trigger, menu);
   });
 }
 
@@ -89,10 +129,8 @@ export function initializeAuthPage() {
   const registerTab = document.getElementById('authRegisterTab');
   const submitButton = document.getElementById('authSubmitBtn');
   const forgotPasswordLink = document.getElementById('authForgotPassword');
-  const signOutButton = document.getElementById('authSignOutBtn');
   const signedOutPanel = document.getElementById('authSignedOut');
-  const signedInPanel = document.getElementById('authSignedIn');
-  const signedInEmail = document.getElementById('authSignedInEmail');
+  const redirectLoader = document.getElementById('authRedirectLoader');
   const message = document.getElementById('authMessage');
   let mode = 'login';
   const valuesByMode = {
@@ -154,7 +192,8 @@ export function initializeAuthPage() {
     try {
       message.textContent = '';
       await action();
-      window.location.href = './index.html';
+      showAuthRedirectLoader(signedOutPanel, redirectLoader);
+      window.location.replace('./index.html');
     } catch (error) {
       handleAuthError(error, {
         messageElement: message,
@@ -163,21 +202,13 @@ export function initializeAuthPage() {
     }
   });
 
-  signOutButton.addEventListener('click', () => {
-    authenticate(() => signOut(auth), {
-      messageElement: message,
-      setFieldErrors
-    });
-  });
-
   onAuthStateChanged(auth, user => {
-    const signedIn = Boolean(user);
-    signedOutPanel.classList.toggle('hidden', signedIn);
-    signedInPanel.classList.toggle('hidden', !signedIn);
-    signedInEmail.textContent = user?.email || '';
+    if (!user) return;
+    showAuthRedirectLoader(signedOutPanel, redirectLoader);
+    window.location.replace('./index.html');
   });
 
-  setMode('login');
+  setMode(new URLSearchParams(window.location.search).get('mode') === 'register' ? 'register' : 'login');
 
   function saveCurrentValues() {
     valuesByMode[mode] = {
@@ -236,6 +267,22 @@ function authResponseForError(error) {
     target: AUTH_ERROR_TARGETS[code] || 'form',
     message: AUTH_ERRORS[code] || 'Authentication failed.'
   };
+}
+
+function setProfileMenuOpen(isOpen, trigger, menu) {
+  menu.classList.toggle('hidden', !isOpen);
+  trigger.setAttribute('aria-expanded', String(isOpen));
+}
+
+function showAuthRedirectLoader(signedOutPanel, redirectLoader) {
+  signedOutPanel.classList.add('hidden');
+  redirectLoader.classList.remove('hidden');
+}
+
+function setSignOutLoading(isLoading, button, label) {
+  button.disabled = isLoading;
+  button.classList.toggle('is-loading', isLoading);
+  label.textContent = isLoading ? 'Logging out...' : 'Logout';
 }
 
 function clearFieldError(input) {

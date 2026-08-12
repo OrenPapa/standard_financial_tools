@@ -18,7 +18,7 @@
     })();
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="./src/styles/theme.css?v=20260812-auth-page" />
+  <link rel="stylesheet" href="./src/styles/theme.css?v=20260812-profile-menu" />
   <script>
     tailwind.config = {
       theme: {
@@ -90,20 +90,16 @@
         </form>
       </div>
 
-      <div id="authSignedIn" class="auth-signed-in hidden">
-        <p class="auth-signed-in-label">Signed in as</p>
-        <p id="authSignedInEmail" class="auth-signed-in-email"></p>
-        <div class="auth-signed-in-actions">
-          <a class="auth-button auth-button-primary" href="./index.html">Continue</a>
-          <button id="authSignOutBtn" class="auth-button" type="button">Sign out</button>
-        </div>
+      <div id="authRedirectLoader" class="auth-redirect-loader hidden" aria-live="polite">
+        <span class="result-loader-spinner" aria-hidden="true"></span>
+        <span>Loading account...</span>
       </div>
       <p id="authMessage" class="auth-message auth-page-message" aria-live="polite"></p>
     </section>
   </main>
 
   <script type="module">
-    import { initializeAuthPage } from './src/ui/auth.js?v=20260812-auth-page';
+    import { initializeAuthPage } from './src/ui/auth.js?v=20260812-profile-menu';
     initializeAuthPage();
   </script>
 </body>
