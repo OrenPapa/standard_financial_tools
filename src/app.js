@@ -1,18 +1,18 @@
-import { pensionModule } from './modules/pension.js?v=20260810-year-input-format';
-import { investmentModule } from './modules/investment.js?v=20260811-advanced-toggle';
-import { inflationModule } from './modules/inflation.js?v=20260810-year-input-format';
-import { loanModule } from './modules/loan.js?v=20260811-advanced-toggle';
-import { mortgageModule } from './modules/mortgage.js?v=20260811-advanced-toggle';
-import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260811-advanced-toggle';
-import { clampNumberToMeta, renderControls, renderExtraControls, syncControl, updatePayoutButtons, validateNumericState } from './ui/controls.js?v=20260812-secure-number-inputs';
-import { renderKpis } from './ui/kpis.js?v=20260810-year-input-format';
-import { renderSchedule } from './ui/table.js?v=20260810-year-input-format';
-import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-year-input-format';
-import { classes } from './ui/theme.js?v=20260810-year-input-format';
-import { initializeTooltips } from './ui/tooltips.js?v=20260810-year-input-format';
-import { initializeThemePicker } from './ui/themePicker.js?v=20260810-year-input-format';
-import { initializeHeaderAuth } from './ui/auth.js?v=20260812-profile-menu';
-import { calculationStateForAdvanced, hasAdvancedControls, visibleTableForAdvanced } from './utils/advancedState.js?v=20260811-advanced-toggle';
+import { pensionModule } from './modules/pension.js';
+import { investmentModule } from './modules/investment.js';
+import { inflationModule } from './modules/inflation.js';
+import { loanModule } from './modules/loan.js';
+import { mortgageModule } from './modules/mortgage.js';
+import { rentVsBuyModule } from './modules/rentVsBuy.js';
+import { clampNumberToMeta, renderControls, renderExtraControls, syncControl, updatePayoutButtons, validateNumericState } from './ui/controls.js';
+import { renderKpis } from './ui/kpis.js';
+import { renderSchedule } from './ui/table.js';
+import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js';
+import { classes } from './ui/theme.js';
+import { initializeTooltips } from './ui/tooltips.js';
+import { initializeThemePicker } from './ui/themePicker.js';
+import { initializeHeaderAuth } from './ui/auth.js';
+import { calculationStateForAdvanced, hasAdvancedControls, visibleTableForAdvanced } from './utils/advancedState.js';
 
 const modules = {
   [pensionModule.id]: pensionModule,

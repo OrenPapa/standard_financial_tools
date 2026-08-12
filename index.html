@@ -17,22 +17,12 @@
       }
     })();
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="./src/styles/theme.css?v=20260812-profile-menu" />
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Arial']
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="./src/styles/app.css" />
 </head>
 <body class="min-h-screen text-slate-100 antialiased">
+  <div id="devServerNotice" style="display:none;max-width:44rem;margin:2rem auto;padding:1rem;border:1px solid #f59e0b;border-radius:0.5rem;background:#111827;color:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.5">
+    This source page needs the Vite dev server. Run <code>pnpm dev</code> and open <code>http://127.0.0.1:5173/</code>.
+  </div>
   <div id="appLoader" class="app-loader" aria-live="polite" aria-label="Loading financial tools">
     <div class="app-loader-mark"></div>
     <div class="app-loader-text">Loading</div>
@@ -100,6 +90,15 @@
     </section>
   </main>
 
-  <script type="module" src="./src/app.js?v=20260812-profile-menu"></script>
+  <script type="module" src="./src/app.js"></script>
+  <script>
+    window.setTimeout(() => {
+      const controls = document.getElementById('controls');
+      const notice = document.getElementById('devServerNotice');
+      if (notice && controls && controls.children.length === 0) {
+        notice.style.display = 'block';
+      }
+    }, 1500);
+  </script>
 </body>
 </html>

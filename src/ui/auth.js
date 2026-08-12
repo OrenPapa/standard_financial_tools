@@ -3,10 +3,10 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut
-} from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
+} from 'firebase/auth';
 
-import { auth } from '../firebase.js?v=20260812-firebase-auth';
-import { validateAuthFieldErrors } from '../utils/authValidation.js?v=20260812-profile-menu';
+import { auth } from '../firebase.js';
+import { validateAuthFieldErrors } from '../utils/authValidation.js';
 
 const AUTH_ERRORS = {
   'auth/email-already-in-use': 'That email already has an account.',

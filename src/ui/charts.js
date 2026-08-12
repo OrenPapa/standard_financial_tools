@@ -1,5 +1,8 @@
+import { Chart, registerables } from 'chart.js';
 import { euros } from '../utils/format.js';
 import { colors, classes } from './theme.js';
+
+Chart.register(...registerables);
 
 let primaryChart;
 let secondaryChart;
