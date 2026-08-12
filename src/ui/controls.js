@@ -69,6 +69,7 @@ function inputMarkup(meta, value, inputPaddingClasses, disabled = false) {
 
 const numberDebounceTimers = new Map();
 const NUMBER_INPUT_DEBOUNCE_MS = 500;
+const NUMERIC_INPUT_PATTERN = /^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/;
 
 export function renderControls({ module, state, onChange, advancedEnabled = false, onAdvancedToggle }) {
   const controls = document.getElementById('controls');
@@ -104,6 +105,14 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
       const meta = module.controls.find(item => item.id === id);
       const isNumberInput = event.target.dataset.controlKind === 'number';
       if (isNumberInput) {
+        const sanitizedValue = sanitizeNumberInputText(event.target.value, meta);
+        if (event.target.value !== sanitizedValue) {
+          const cursor = event.target.selectionStart ?? sanitizedValue.length;
+          const removedBeforeCursor = event.target.value.slice(0, cursor).length - sanitizedValue.slice(0, cursor).length;
+          event.target.value = sanitizedValue;
+          const nextCursor = Math.max(0, cursor - Math.max(0, removedBeforeCursor));
+          event.target.setSelectionRange?.(nextCursor, nextCursor);
+        }
         document.getElementById(`${id}Display`).textContent = event.target.value;
         clearTimeout(numberDebounceTimers.get(id));
         numberDebounceTimers.set(id, setTimeout(() => {
@@ -166,7 +175,7 @@ function commitNumberInput(input, module, state, onChange, options = {}) {
   }
 
   input.dataset.forceSync = 'true';
-  onChange(id, nextValue);
+  onChange(id, clampNumberToMeta(meta, nextValue));
 }
 
 export function parseNumberInput(value) {
@@ -174,8 +183,89 @@ export function parseNumberInput(value) {
   const compact = value.replace(/\s/g, '').trim();
   if (compact === '') return 0;
   if (compact === '-' || compact === '.' || compact === ',') return NaN;
+  if (!isSafeNumberInput(compact)) return NaN;
   const normalized = normalizeNumericSeparators(compact);
   return Number(normalized);
+}
+
+export function sanitizeNumberInputText(value, meta = {}) {
+  const text = String(value ?? '');
+  const allowsNegative = Number(meta.min) < 0;
+  let sanitized = '';
+  let hasSign = false;
+
+  for (const char of text) {
+    if (/\d/.test(char)) {
+      sanitized += char;
+      continue;
+    }
+
+    if (char === '.' || char === ',') {
+      sanitized += char;
+      continue;
+    }
+
+    if (char === '-' && allowsNegative && !hasSign && sanitized.length === 0) {
+      sanitized += char;
+      hasSign = true;
+    }
+  }
+
+  return sanitized;
+}
+
+export function validateNumericState(module, state) {
+  const changed = [];
+
+  module.controls
+    .filter(isNumericControl)
+    .forEach(meta => {
+      const fallback = Number(module.defaultState?.[meta.id] ?? meta.min ?? 0);
+      const parsedValue = typeof state[meta.id] === 'string' ? parseNumberInput(state[meta.id]) : Number(state[meta.id]);
+      const safeValue = Number.isFinite(parsedValue) ? parsedValue : fallback;
+      const nextValue = clampNumberToMeta(meta, safeValue);
+
+      if (!Object.is(state[meta.id], nextValue)) {
+        state[meta.id] = nextValue;
+        changed.push(meta.id);
+      }
+    });
+
+  return changed;
+}
+
+export function clampNumberToMeta(meta, value) {
+  if (!meta) return value;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return Number(meta.min ?? 0);
+  const min = Number.isFinite(Number(meta.min)) ? Number(meta.min) : -Infinity;
+  const max = Number.isFinite(Number(meta.max)) ? Number(meta.max) : Infinity;
+  return Math.min(max, Math.max(min, number));
+}
+
+function isNumericControl(meta) {
+  return meta.type !== 'select' && meta.type !== 'checkbox';
+}
+
+function isSafeNumberInput(value) {
+  const unsigned = value.startsWith('-') ? value.slice(1) : value;
+  const separatorCount = (unsigned.match(/[.,]/g) || []).length;
+
+  if (!NUMERIC_INPUT_PATTERN.test(value)) {
+    const groupedPattern = /^-?\d{1,3}([.,]\d{3})+([.,]\d+)?$/;
+    if (!groupedPattern.test(value)) return false;
+  }
+
+  if (separatorCount > 1) {
+    const lastSeparatorIndex = Math.max(unsigned.lastIndexOf('.'), unsigned.lastIndexOf(','));
+    const thousandsPart = unsigned.slice(0, lastSeparatorIndex);
+    const decimalPart = unsigned.slice(lastSeparatorIndex + 1);
+    return /^[.,]?\d/.test(unsigned)
+      && /^\d{1,3}([.,]\d{3})+$/.test(thousandsPart)
+      && /^\d+$/.test(decimalPart);
+  }
+
+  return true;
 }
 
 function normalizeNumericSeparators(value) {

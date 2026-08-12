@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseNumberInput } from '../src/ui/controls.js';
+import { parseNumberInput, sanitizeNumberInputText, validateNumericState } from '../src/ui/controls.js';
 import { runTest } from './helpers.js';
 
 runTest('number input accepts comma as decimal separator', () => {
@@ -15,4 +15,33 @@ runTest('number input keeps comma thousands separators as thousands', () => {
 runTest('blank number input commits as zero', () => {
   assert.equal(parseNumberInput(''), 0);
   assert.equal(parseNumberInput('   '), 0);
+});
+
+runTest('number input rejects text and dangerous-looking strings', () => {
+  assert.equal(Number.isNaN(parseNumberInput('abc')), true);
+  assert.equal(Number.isNaN(parseNumberInput('123abc')), true);
+  assert.equal(Number.isNaN(parseNumberInput('<script>1</script>')), true);
+  assert.equal(Number.isNaN(parseNumberInput('1e9')), true);
+  assert.equal(Number.isNaN(parseNumberInput('Infinity')), true);
+});
+
+runTest('number input sanitizer removes non-numeric characters', () => {
+  assert.equal(sanitizeNumberInputText('abc123<script>', { min: 0 }), '123');
+  assert.equal(sanitizeNumberInputText('-3.5%', { min: -10 }), '-3.5');
+  assert.equal(sanitizeNumberInputText('-3.5%', { min: 0 }), '3.5');
+  assert.equal(sanitizeNumberInputText('1,234,567.89 EUR', { min: 0 }), '1,234,567.89');
+});
+
+runTest('numeric state validation clamps invalid and out-of-range values', () => {
+  const module = {
+    defaultState: { amount: 100, rate: 2.5 },
+    controls: [
+      { id: 'amount', min: 0, max: 1000, step: 1 },
+      { id: 'rate', min: -10, max: 20, step: 0.1 }
+    ]
+  };
+  const state = { amount: '<script>', rate: 99 };
+
+  assert.deepEqual(validateNumericState(module, state), ['amount', 'rate']);
+  assert.deepEqual(state, { amount: 100, rate: 20 });
 });

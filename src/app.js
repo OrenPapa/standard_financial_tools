@@ -4,7 +4,7 @@ import { inflationModule } from './modules/inflation.js?v=20260810-year-input-fo
 import { loanModule } from './modules/loan.js?v=20260811-advanced-toggle';
 import { mortgageModule } from './modules/mortgage.js?v=20260811-advanced-toggle';
 import { rentVsBuyModule } from './modules/rentVsBuy.js?v=20260811-advanced-toggle';
-import { renderControls, renderExtraControls, syncControl, updatePayoutButtons } from './ui/controls.js?v=20260811-advanced-toggle';
+import { clampNumberToMeta, renderControls, renderExtraControls, syncControl, updatePayoutButtons, validateNumericState } from './ui/controls.js?v=20260812-secure-number-inputs';
 import { renderKpis } from './ui/kpis.js?v=20260810-year-input-format';
 import { renderSchedule } from './ui/table.js?v=20260810-year-input-format';
 import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js?v=20260810-year-input-format';
@@ -83,9 +83,14 @@ function updateModuleTabs() {
 function setControlValue(id, value) {
   const module = activeModule();
   const state = activeState();
-  if (Object.is(state[id], value)) return;
+  const meta = module.controls.find(control => control.id === id);
+  const nextValue = meta && meta.type !== 'select' && meta.type !== 'checkbox'
+    ? clampNumberToMeta(meta, value)
+    : value;
 
-  state[id] = value;
+  if (Object.is(state[id], nextValue)) return;
+
+  state[id] = nextValue;
   syncControl({ module, state, id });
 
   if (module.id === 'investment' && (id === 'incomeYield' || id === 'incomeFrequency')) {
@@ -131,7 +136,10 @@ function calculateAndRender(options = {}) {
     startDelayedResultLoader('scheduleLoader');
   }
 
-  const changedIds = module.validateState?.(state) || [];
+  const changedIds = [
+    ...validateNumericState(module, state),
+    ...(module.validateState?.(state) || [])
+  ];
   changedIds.forEach(id => syncControl({ module, state, id }));
 
   const calculationState = calculationStateForAdvanced(module, state, advancedIsEnabled(module.id));
