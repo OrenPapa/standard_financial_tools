@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/standard_financial_tools/',
   build: {
     rollupOptions: {
       input: {
