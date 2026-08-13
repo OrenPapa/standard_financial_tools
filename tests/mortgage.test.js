@@ -29,7 +29,7 @@ runTest('mortgage with zero interest repays principal evenly', () => {
   assert.equal(result.table.rows.length, 12);
   assert.equal(result.table.rows[0].principal, 10000);
   assert.equal(result.table.rows.at(-1).endingBalance, 0);
-  assert.equal(result.charts.primary.datasets[1].data.at(-1), 120000);
+  assert.equal(result.charts.balance.datasets[1].data.at(-1), 120000);
 });
 
 runTest('mortgage ownership costs are included in monthly schedule', () => {
@@ -51,6 +51,39 @@ runTest('mortgage ownership costs are included in monthly schedule', () => {
   assert.equal(firstRow.insurance, 100);
   assert.equal(firstRow.hoa, 50);
   assert.equal(firstRow.totalMonthly, 10270);
+});
+
+runTest('mortgage simple chart shows monthly payment breakdown', () => {
+  const result = mortgageModule.calculate({
+    ...clone(mortgageModule.defaultState),
+    homePrice: 240000,
+    downPayment: 60000,
+    annualInterestRate: 0,
+    mortgageTermYears: 30,
+    propertyTaxRate: 1,
+    annualInsurance: 1200,
+    monthlyHOA: 50,
+    pmiRate: 0
+  });
+
+  assert.equal(result.charts.primary.type, 'doughnut');
+  assert.deepEqual(result.charts.primary.labels, ['Principal & Interest', 'Property Taxes', 'Home Insurance', 'Other Cost']);
+  assert.deepEqual(result.charts.primary.datasets[0].data, [500, 200, 100, 50]);
+});
+
+runTest('mortgage advanced charts keep balance and cost detail separated', () => {
+  const result = mortgageModule.calculate({
+    ...clone(mortgageModule.defaultState),
+    homePrice: 120000,
+    downPayment: 0,
+    annualInterestRate: 0,
+    mortgageTermYears: 1
+  });
+
+  assert.equal(result.charts.balance.datasets.length, 2);
+  assert.equal(result.charts.balance.datasets[0].label, 'Remaining Balance');
+  assert.equal(result.charts.cost.datasets.length, 3);
+  assert.equal(result.charts.cost.datasets[2].label, 'Taxes / Insurance / PMI / HOA');
 });
 
 runTest('mortgage monthly cost subvalue shows year buying power when inflation is active', () => {

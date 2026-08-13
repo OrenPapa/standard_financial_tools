@@ -1,6 +1,6 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { realValueLabel } from '../utils/inflation.js';
-import { barDataset, lineDataset } from '../ui/chartDatasets.js';
+import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
   startAge: 30,
@@ -122,8 +122,9 @@ export const pensionModule = {
   defaultState,
   controls,
   chartTabs: {
-    primary: 'Growth',
-    secondary: 'Drawdown'
+    primary: 'Simple',
+    growth: 'Growth',
+    drawdown: 'Drawdown'
   },
   validateState(state) {
     if (state.retirementAge <= state.startAge) {
@@ -157,6 +158,19 @@ export const pensionModule = {
       },
       charts: {
         primary: {
+          type: 'doughnut',
+          title: 'Retirement Balance Snapshot',
+          subtitle: 'Contributions, investment growth, and estimated tax at retirement',
+          labels: ['Contributions', 'Investment Growth', 'Tax'],
+          datasets: [
+            doughnutDataset('Retirement balance', [
+              acc.totalContributed,
+              acc.totalProfit,
+              acc.taxAmount
+            ], ['contribution', 'growth', 'feeSlice'])
+          ]
+        },
+        growth: {
           title: 'Annual Portfolio Growth',
           subtitle: 'Principal, interest, and net balance after tax',
           leftAxis: 'Fund value',
@@ -168,7 +182,7 @@ export const pensionModule = {
             lineDataset('Net Balance After Tax', acc.annual.map(row => row.netBalance), 'balance')
           ]
         },
-        secondary: {
+        drawdown: {
           title: 'Retirement Drawdown',
           subtitle: 'Remaining fund balance and monthly payout by year',
           leftAxis: 'Fund balance',

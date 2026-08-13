@@ -25,7 +25,8 @@ runTest('loan with zero interest repays straight-line principal', () => {
   assert.equal(result.table.rows.length, 12);
   assert.equal(result.table.rows[0].principal, 1000);
   assert.equal(result.table.rows.at(-1).endingBalance, 0);
-  assert.equal(result.charts.primary.datasets[2].data.at(-1), 0);
+  assert.equal(result.charts.balance.datasets[0].data.at(-1), 0);
+  assert.equal(result.charts.primary.type, 'doughnut');
 });
 
 runTest('loan includes recurring fees in total paid without reducing balance', () => {
@@ -40,5 +41,5 @@ runTest('loan includes recurring fees in total paid without reducing balance', (
   const result = loanModule.calculate(state);
 
   assert.equal(result.table.rows.at(-1).endingBalance, 0);
-  assertClose(result.charts.secondary.datasets[2].data.at(-1), 120);
+  assertClose(result.charts.cost.datasets[2].data.at(-1), 120);
 });

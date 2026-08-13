@@ -1,6 +1,6 @@
 import { euros, formatPlain } from '../utils/format.js';
 import { realValueLabel } from '../utils/inflation.js';
-import { barDataset, lineDataset } from '../ui/chartDatasets.js';
+import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
   initialInvestment: 5000,
@@ -107,11 +107,13 @@ export const investmentModule = {
   controls,
   advancedTableColumnKeys: ['grossIncome', 'taxPaid'],
   chartTabs: {
-    primary: 'Growth',
-    secondary: 'Income'
+    primary: 'Simple',
+    growth: 'Growth',
+    income: 'Income'
   },
   calculate(state) {
     const result = projectInvestment(state);
+    const lastAnnualRow = result.annual.at(-1) || { marketGrowth: 0 };
 
     return {
       kpis: [
@@ -134,6 +136,20 @@ export const investmentModule = {
       },
       charts: {
         primary: {
+          type: 'doughnut',
+          title: 'Investment Outcome Snapshot',
+          subtitle: 'Contributions, market growth, net income, and tax',
+          labels: ['Contributions', 'Market Growth', 'Net Income', 'Tax'],
+          datasets: [
+            doughnutDataset('Investment outcome', [
+              result.totalContributed,
+              lastAnnualRow.marketGrowth,
+              Math.max(0, result.grossIncome - result.taxPaid),
+              result.taxPaid
+            ], ['contribution', 'growth', 'incomeSlice', 'feeSlice'])
+          ]
+        },
+        growth: {
           title: 'Investment Growth',
           subtitle: 'Contributions compared with total net worth',
           leftAxis: 'Value',
@@ -144,7 +160,7 @@ export const investmentModule = {
             lineDataset('Total Net Worth', result.annual.map(row => row.netWorth), 'balance')
           ]
         },
-        secondary: {
+        income: {
           title: 'Income & Reinvestment',
           subtitle: 'Portfolio balance and cumulative net income',
           leftAxis: 'Value',

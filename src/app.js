@@ -6,7 +6,7 @@ import { mortgageModule } from './modules/mortgage.js';
 import { rentVsBuyModule } from './modules/rentVsBuy.js';
 import { clampNumberToMeta, renderControls, renderExtraControls, syncControl, updatePayoutButtons, validateNumericState } from './ui/controls.js';
 import { renderKpis } from './ui/kpis.js';
-import { renderSchedule } from './ui/table.js';
+import { renderSchedule, renderTableColumnControls } from './ui/table.js';
 import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js';
 import { classes } from './ui/theme.js';
 import { initializeTooltips } from './ui/tooltips.js';
@@ -31,6 +31,7 @@ const appState = {
   activeModuleId: initialModuleId(),
   activeChart: 'primary',
   payoutType: 'indexed',
+  selectedTableColumnsByModule: {},
   advancedEnabledByModule: Object.fromEntries(
     Object.values(modules)
       .filter(hasAdvancedControls)
@@ -166,10 +167,20 @@ function calculateAndRender(options = {}) {
 
 function renderResultSchedule({ module, table, defer }) {
   const visibleTable = visibleTableForAdvanced(module, table, advancedIsEnabled(module.id));
+  const selectedColumnKeys = selectedTableColumnKeys(module, visibleTable);
+  const selectedColumns = visibleTable.columns.filter(column => selectedColumnKeys.includes(column.key));
 
   if (!defer) {
     cancelDeferredScheduleRender();
-    renderSchedule(visibleTable);
+    renderSchedule({ ...visibleTable, columns: selectedColumns });
+    renderTableColumnControls({
+      columns: visibleTable.columns,
+      selectedColumnKeys,
+      onChange: nextKeys => {
+        appState.selectedTableColumnsByModule[module.id] = nextKeys;
+        calculateAndRender();
+      }
+    });
     stopResultLoader('scheduleLoader');
     return;
   }
@@ -180,9 +191,30 @@ function renderResultSchedule({ module, table, defer }) {
   scheduleRenderFrame = requestAnimationFrame(() => {
     scheduleRenderFrame = 0;
     if (renderVersion !== scheduleRenderVersion || appState.activeModuleId !== moduleId) return;
-    renderSchedule(visibleTable);
+    renderSchedule({ ...visibleTable, columns: selectedColumns });
+    renderTableColumnControls({
+      columns: visibleTable.columns,
+      selectedColumnKeys,
+      onChange: nextKeys => {
+        appState.selectedTableColumnsByModule[module.id] = nextKeys;
+        calculateAndRender();
+      }
+    });
     stopResultLoader('scheduleLoader');
   });
+}
+
+function selectedTableColumnKeys(module, table) {
+  const availableKeys = table.columns.map(column => column.key);
+  const selectedKeys = appState.selectedTableColumnsByModule[module.id] || availableKeys;
+  const visibleSelectedKeys = selectedKeys.filter(key => availableKeys.includes(key));
+
+  if (visibleSelectedKeys.length) {
+    return visibleSelectedKeys;
+  }
+
+  appState.selectedTableColumnsByModule[module.id] = availableKeys;
+  return availableKeys;
 }
 
 function cancelDeferredScheduleRender() {

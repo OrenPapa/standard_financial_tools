@@ -1,7 +1,7 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
 import { realValueAt } from '../utils/inflation.js';
-import { barDataset, lineDataset } from '../ui/chartDatasets.js';
+import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
   homePrice: 300000,
@@ -23,8 +23,8 @@ const controls = [
   { id: 'annualInterestRate', label: 'Mortgage rate', min: 0, max: 20, step: 0.1, suffix: '%', desc: 'Nominal annual mortgage interest rate.' },
   { id: 'mortgageTermYears', label: 'Mortgage term', min: 1, max: 40, step: 1, suffix: 'yrs', desc: 'Planned mortgage repayment period.' },
   { id: 'extraMonthlyPayment', label: 'Extra monthly payment', min: 0, max: 10000, step: 50, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Additional amount paid toward principal each month.' },
-  { id: 'propertyTaxRate', label: 'Property tax rate', min: 0, max: 5, step: 0.1, suffix: '%', advanced: true, desc: 'Annual property tax as a percentage of the home price.' },
-  { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Estimated yearly homeowners insurance.' },
+  { id: 'propertyTaxRate', label: 'Property tax rate', min: 0, max: 5, step: 0.1, suffix: '%', advanced: true, inactiveValue: defaultState.propertyTaxRate, desc: 'Annual property tax as a percentage of the home price.' },
+  { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, inactiveValue: defaultState.annualInsurance, desc: 'Estimated yearly homeowners insurance.' },
   { id: 'monthlyHOA', label: 'Monthly HOA / maintenance', min: 0, max: 3000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Monthly association dues or maintenance reserve.' },
   { id: 'pmiRate', label: 'PMI rate', min: 0, max: 3, step: 0.1, suffix: '%', advanced: true, desc: 'Annual private mortgage insurance rate, applied while equity is below 20%.' },
   { id: 'closingCosts', label: 'Closing costs', min: 0, max: 100000, step: 500, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time purchase costs counted in total cost, not loan balance.' },
@@ -131,8 +131,9 @@ export const mortgageModule = {
   controls,
   advancedTableColumnKeys: ['taxes', 'pmi'],
   chartTabs: {
-    primary: 'Balance',
-    secondary: 'Cost'
+    primary: 'Simple',
+    balance: 'Balance',
+    cost: 'Cost'
   },
   validateState(state) {
     if (state.downPayment > state.homePrice) {
@@ -171,6 +172,20 @@ export const mortgageModule = {
       },
       charts: {
         primary: {
+          type: 'doughnut',
+          title: 'Monthly Payment Snapshot',
+          subtitle: 'Principal & interest, property taxes, home insurance, and other costs',
+          labels: ['Principal & Interest', 'Property Taxes', 'Home Insurance', 'Other Cost'],
+          datasets: [
+            doughnutDataset('Monthly cost', [
+              result.scheduledPayment,
+              result.propertyTaxMonthly,
+              result.insuranceMonthly,
+              result.pmiMonthly + state.monthlyHOA
+            ], ['principal', 'tax', 'insurance', 'otherCost'])
+          ]
+        },
+        balance: {
           title: 'Mortgage Balance & Equity',
           subtitle: 'Remaining loan balance compared with estimated equity',
           leftAxis: 'Amount',
@@ -181,7 +196,7 @@ export const mortgageModule = {
             lineDataset('Equity', result.annual.map(row => row.equity), 'equity')
           ]
         },
-        secondary: {
+        cost: {
           title: 'Mortgage Cost Breakdown',
           subtitle: 'Cumulative principal, interest, and ownership costs',
           leftAxis: 'Amount paid',

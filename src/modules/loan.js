@@ -1,7 +1,7 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
 import { realValueLabel } from '../utils/inflation.js';
-import { barDataset, lineDataset } from '../ui/chartDatasets.js';
+import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
 
 const defaultState = {
   loanAmount: 100000,
@@ -127,8 +127,9 @@ export const loanModule = {
   controls,
   advancedTableColumnKeys: ['fees'],
   chartTabs: {
-    primary: 'Balance',
-    secondary: 'Cost'
+    primary: 'Simple',
+    balance: 'Balance',
+    cost: 'Cost'
   },
   calculate(state) {
     const result = amortize(state);
@@ -161,6 +162,19 @@ export const loanModule = {
       },
       charts: {
         primary: {
+          type: 'doughnut',
+          title: 'Loan Cost Snapshot',
+          subtitle: 'Total principal, interest, and fees over the loan',
+          labels: ['Principal', 'Interest', 'Fees'],
+          datasets: [
+            doughnutDataset('Total cost', [
+              result.totalPrincipal,
+              result.totalInterest,
+              result.totalFees
+            ], ['principal', 'interest', 'feeSlice'])
+          ]
+        },
+        balance: {
           title: 'Balance, Principal & Interest',
           subtitle: 'Remaining balance compared with cumulative principal and interest',
           leftAxis: 'Amount',
@@ -172,7 +186,7 @@ export const loanModule = {
             lineDataset('Interest Paid', result.annual.map(row => row.totalInterest), 'interest')
           ]
         },
-        secondary: {
+        cost: {
           title: 'Loan Cost Breakdown',
           subtitle: 'Cumulative principal, interest, and fees',
           leftAxis: 'Amount paid',

@@ -11,6 +11,13 @@ function resolveColor(colorKey, fallback = colors.text) {
     interestBarSoft: colors.emeraldBarSoft,
     cost: colors.pink,
     costBar: colors.pinkBar,
+    tax: colors.emerald,
+    insurance: colors.amber,
+    otherCost: colors.rose,
+    contribution: colors.indigo,
+    growth: colors.cyan,
+    incomeSlice: colors.amber,
+    feeSlice: colors.rose,
     balance: colors.text,
     equity: colors.emerald,
     income: colors.emerald
@@ -45,6 +52,19 @@ export function barDataset(label, data, colorKey, overrides = {}) {
     borderColor: resolveColor(overrides.borderColorKey, color),
     borderWidth: 1,
     yAxisID: 'y',
+    ...overrides
+  };
+}
+
+export function doughnutDataset(label, data, colorKeys, overrides = {}) {
+  return {
+    type: 'doughnut',
+    label,
+    data,
+    backgroundColor: colorKeys.map(colorKey => resolveColor(colorKey)),
+    borderColor: colors.panel,
+    borderWidth: 2,
+    hoverOffset: 6,
     ...overrides
   };
 }

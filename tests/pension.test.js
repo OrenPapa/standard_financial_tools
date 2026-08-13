@@ -30,7 +30,8 @@ runTest('pension accumulates yearly contributions and schedule rows', () => {
   assert.equal(result.table.rows[1].monthlyContrib, 150);
   assert.equal(result.table.rows[1].totalContributed, 3000);
   assert.equal(result.table.rows[1].balance, 3000);
-  assert.equal(result.charts.primary.datasets[2].data.at(-1), 3000);
+  assert.equal(result.charts.growth.datasets[2].data.at(-1), 3000);
+  assert.equal(result.charts.primary.type, 'doughnut');
 });
 
 runTest('pension flat drawdown pays balance evenly when retirement return is zero', () => {
@@ -48,7 +49,7 @@ runTest('pension flat drawdown pays balance evenly when retirement return is zer
   };
   const result = pensionModule.calculate(state, { payoutType: 'flat' });
 
-  assert.equal(result.charts.primary.datasets[2].data.at(-1), 1200);
-  assertClose(result.charts.secondary.datasets[1].data[0], 100);
-  assertClose(result.charts.secondary.datasets[0].data.at(-1), 0);
+  assert.equal(result.charts.growth.datasets[2].data.at(-1), 1200);
+  assertClose(result.charts.drawdown.datasets[1].data[0], 100);
+  assertClose(result.charts.drawdown.datasets[0].data.at(-1), 0);
 });

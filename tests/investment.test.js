@@ -59,5 +59,5 @@ runTest('investment reinvests after-tax income into portfolio when enabled', () 
   assertClose(lastRow.grossIncome, 1200);
   assertClose(lastRow.taxPaid, 300);
   assertClose(lastRow.netWorth, 10900);
-  assertClose(result.charts.secondary.datasets[0].data.at(-1), 10900);
+  assertClose(result.charts.income.datasets[0].data.at(-1), 10900);
 });

@@ -5,17 +5,17 @@ import { colors, classes } from './theme.js';
 Chart.register(...registerables);
 
 let primaryChart;
-let secondaryChart;
 
 function chartOptions(chartData) {
   const formatLeftTick = chartData.leftTickFormatter || (value => euros.format(value));
   const formatRightTick = chartData.rightTickFormatter || (value => euros.format(value));
   const formatTooltip = chartData.tooltipFormatter || (value => euros.format(value));
+  const hasScales = chartData.type !== 'doughnut' && chartData.type !== 'pie';
 
   return {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
+    interaction: hasScales ? { mode: 'index', intersect: false } : { intersect: true },
     plugins: {
       legend: { labels: { color: colors.textSoft, boxWidth: 12, boxHeight: 12 } },
       tooltip: {
@@ -26,11 +26,15 @@ function chartOptions(chartData) {
         bodyColor: colors.textSoft,
         footerColor: colors.textMuted,
         callbacks: {
-          label: ctx => `${ctx.dataset.label}: ${formatTooltip(ctx.parsed.y)}`
+          label: ctx => {
+            const value = hasScales ? ctx.parsed.y : ctx.parsed;
+            const label = hasScales ? ctx.dataset.label : ctx.label;
+            return `${label}: ${formatTooltip(value)}`;
+          }
         }
       }
     },
-    scales: {
+    scales: hasScales ? {
       x: { ticks: { color: colors.textMuted }, grid: { color: colors.grid } },
       y: {
         type: 'linear',
@@ -47,12 +51,13 @@ function chartOptions(chartData) {
         ticks: { color: colors.textMuted, callback: formatRightTick },
         grid: { drawOnChartArea: false }
       }
-    }
+    } : {}
   };
 }
 
 function chartConfig(chartData) {
   return {
+    type: chartData.type || 'bar',
     data: {
       labels: chartData.labels,
       datasets: chartData.datasets
@@ -63,55 +68,56 @@ function chartConfig(chartData) {
 
 export function renderChartTabs({ module, activeChart, onTabChange }) {
   const tabs = document.getElementById('chartTabs');
-  tabs.innerHTML = `
-    <button id="primaryChartTab" class="${classes.chartTab}">${module.chartTabs.primary}</button>
-    <button id="secondaryChartTab" class="${classes.chartTab}">${module.chartTabs.secondary}</button>
-  `;
+  const chartTabs = Object.entries(module.chartTabs);
+  tabs.innerHTML = chartTabs.map(([chartId, label]) => `
+    <button id="${chartId}ChartTab" data-chart-id="${chartId}" class="${classes.chartTab}">${label}</button>
+  `).join('');
 
-  document.getElementById('primaryChartTab').addEventListener('click', () => onTabChange('primary'));
-  document.getElementById('secondaryChartTab').addEventListener('click', () => onTabChange('secondary'));
+  tabs.querySelectorAll('button[data-chart-id]').forEach(button => {
+    button.addEventListener('click', () => onTabChange(button.dataset.chartId));
+  });
   updateChartTabs({ module, activeChart });
 }
 
 export function updateChartTabs({ module, activeChart }) {
-  const showingPrimary = activeChart === 'primary';
-  document.getElementById('primaryChartPanel').classList.toggle('hidden', !showingPrimary);
-  document.getElementById('secondaryChartPanel').classList.toggle('hidden', showingPrimary);
+  Object.entries(module.chartTabs).forEach(([chartId, label], index) => {
+    const button = document.getElementById(`${chartId}ChartTab`);
+    if (!button) return;
+    const isActive = activeChart === chartId;
+    const activeClass = index === 0 ? classes.activePrimaryTab : classes.activeSecondaryTab;
+    button.textContent = label;
+    button.className = `${classes.chartTab} ${isActive ? activeClass : classes.inactiveTab}`;
+  });
 
-  const primaryTab = document.getElementById('primaryChartTab');
-  const secondaryTab = document.getElementById('secondaryChartTab');
-  if (primaryTab && secondaryTab) {
-    primaryTab.textContent = module.chartTabs.primary;
-    secondaryTab.textContent = module.chartTabs.secondary;
-    primaryTab.className = `${classes.chartTab} ${showingPrimary ? classes.activePrimaryTab : classes.inactiveTab}`;
-    secondaryTab.className = `${classes.chartTab} ${!showingPrimary ? classes.activeSecondaryTab : classes.inactiveTab}`;
-  }
-
-  if (showingPrimary && primaryChart) primaryChart.resize();
-  if (!showingPrimary && secondaryChart) secondaryChart.resize();
+  if (primaryChart) primaryChart.resize();
 }
 
 export function renderCharts({ charts, activeChart }) {
-  const primaryConfig = chartConfig(charts.primary);
-  const secondaryConfig = chartConfig(charts.secondary);
+  const chart = charts[activeChart] || charts.primary;
+  const primaryConfig = chartConfig(chart);
 
-  if (!primaryChart) {
-    primaryChart = new Chart(document.getElementById('primaryChart'), primaryConfig);
-  } else {
-    primaryChart.data = primaryConfig.data;
-    primaryChart.options = primaryConfig.options;
-    primaryChart.update();
-  }
+  primaryChart = renderChart({
+    instance: primaryChart,
+    canvasId: 'primaryChart',
+    config: primaryConfig
+  });
 
-  if (!secondaryChart) {
-    secondaryChart = new Chart(document.getElementById('secondaryChart'), secondaryConfig);
-  } else {
-    secondaryChart.data = secondaryConfig.data;
-    secondaryChart.options = secondaryConfig.options;
-    secondaryChart.update();
-  }
-
-  const chart = activeChart === 'primary' ? charts.primary : charts.secondary;
   document.getElementById('chartTitle').textContent = chart.title;
   document.getElementById('chartSubtitle').textContent = chart.subtitle;
+}
+
+function renderChart({ instance, canvasId, config }) {
+  if (!instance) {
+    return new Chart(document.getElementById(canvasId), config);
+  }
+
+  if (instance.config.type !== config.type) {
+    instance.destroy();
+    return new Chart(document.getElementById(canvasId), config);
+  }
+
+  instance.data = config.data;
+  instance.options = config.options;
+  instance.update();
+  return instance;
 }
