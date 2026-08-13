@@ -20,7 +20,10 @@ export function renderTableColumnControls({ columns, selectedColumnKeys, onChang
     <details class="table-column-dropdown">
       <summary class="table-column-trigger">
         <span>Columns</span>
-        <span>${selectedColumnKeys.length}/${columns.length}</span>
+        <span class="table-column-trigger-meta">
+          <span>${selectedColumnKeys.length}/${columns.length}</span>
+          <span class="table-column-caret" aria-hidden="true"></span>
+        </span>
       </summary>
       <div class="table-column-menu">
         <div class="flex items-center justify-between gap-3">

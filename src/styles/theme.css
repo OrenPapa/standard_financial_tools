@@ -309,9 +309,26 @@ details > summary::-webkit-details-marker {
   padding: 0 0.625rem;
 }
 
-.table-column-trigger span:last-child {
+.table-column-trigger-meta {
+  align-items: center;
   color: var(--ui-text-muted);
+  display: inline-flex;
+  gap: 0.5rem;
   font-weight: 600;
+}
+
+.table-column-caret {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  display: inline-block;
+  height: 0.45rem;
+  transform: rotate(45deg) translateY(-0.1rem);
+  transition: transform 160ms ease;
+  width: 0.45rem;
+}
+
+.table-column-dropdown[open] .table-column-caret {
+  transform: rotate(225deg) translate(-0.05rem, -0.05rem);
 }
 
 .table-column-menu {
@@ -1291,8 +1308,17 @@ header,
 
   #chartTabs {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     width: 100%;
+  }
+
+  #chartTabs button {
+    min-width: 0;
+    overflow: hidden;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -1335,9 +1361,7 @@ header,
   }
 
   #chartTabs button {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     line-height: 1.15;
   }
 
