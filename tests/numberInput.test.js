@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseNumberInput, sanitizeNumberInputText, validateNumericState } from '../src/ui/controls.js';
+import { downPaymentAmountFromPercent, downPaymentPercent, formatPercentForInput, parseNumberInput, sanitizeNumberInputText, validateNumericState } from '../src/ui/controls.js';
 import { runTest } from './helpers.js';
 
 runTest('number input accepts comma as decimal separator', () => {
@@ -44,4 +44,10 @@ runTest('numeric state validation clamps invalid and out-of-range values', () =>
 
   assert.deepEqual(validateNumericState(module, state), ['amount', 'rate']);
   assert.deepEqual(state, { amount: 100, rate: 20 });
+});
+
+runTest('down payment amount and percent convert cleanly', () => {
+  assert.equal(downPaymentPercent(20000, 100000), 20);
+  assert.equal(downPaymentAmountFromPercent(20, 100000), 20000);
+  assert.equal(formatPercentForInput(downPaymentPercent(100000, 300000)), '33.33');
 });

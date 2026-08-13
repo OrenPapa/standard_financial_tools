@@ -17,6 +17,11 @@ function controlDisplayValue(meta, value, state, moduleId) {
 function renderControl(meta, state, moduleId, options = {}) {
   const value = state[meta.id];
   const disabled = Boolean(options.disabled);
+
+  if (moduleId === 'mortgage' && meta.id === 'downPayment') {
+    return renderMortgageDownPaymentControl(meta, state, disabled);
+  }
+
   const incomeIsActive = moduleId === 'investment' && Number(state.incomeYield) > 0 && state.incomeFrequency !== 'none';
   const checkboxDisabled = disabled || (meta.id === 'reinvestIncome' && !incomeIsActive);
   const displayValue = controlDisplayValue(meta, value, state, moduleId);
@@ -44,6 +49,33 @@ function renderControl(meta, state, moduleId, options = {}) {
       </div>
       ${controlField}
     </label>
+  `;
+}
+
+function renderMortgageDownPaymentControl(meta, state, disabled) {
+  const value = state[meta.id];
+  const percent = downPaymentPercent(value, state.homePrice);
+
+  return `
+    <div class="${classes.controlCard} ${disabled ? 'opacity-60' : ''}" role="group" aria-labelledby="${meta.id}Label">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <span id="${meta.id}Label" class="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-200">
+          <span class="min-w-0">${meta.label}</span>
+          <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${meta.desc}</span></span>
+        </span>
+        <span class="control-display whitespace-nowrap text-xs text-slate-400">${meta.prefix || ''}<span id="${meta.id}Display">${formatNumberForInput(meta, value)}</span></span>
+      </div>
+      <div class="down-payment-grid">
+        <label class="down-payment-field" for="${meta.id}Number">
+          <span>Amount</span>
+          ${inputMarkup(meta, value, 'px-3 py-2 text-right', disabled)}
+        </label>
+        <label class="down-payment-field" for="${meta.id}PercentNumber">
+          <span>Percent</span>
+          ${inputMarkup({ id: `${meta.id}Percent`, min: 0, max: 100, step: 0.01, suffix: '%' }, percent, 'px-3 py-2 text-right', disabled)}
+        </label>
+      </div>
+    </div>
   `;
 }
 
@@ -104,6 +136,22 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
       const id = event.target.dataset.id;
       const meta = module.controls.find(item => item.id === id);
       const isNumberInput = event.target.dataset.controlKind === 'number';
+      const isDownPaymentPercent = module.id === 'mortgage' && id === 'downPaymentPercent';
+      if (isDownPaymentPercent) {
+        const sanitizedValue = sanitizeNumberInputText(event.target.value, { min: 0 });
+        if (event.target.value !== sanitizedValue) {
+          const cursor = event.target.selectionStart ?? sanitizedValue.length;
+          const removedBeforeCursor = event.target.value.slice(0, cursor).length - sanitizedValue.slice(0, cursor).length;
+          event.target.value = sanitizedValue;
+          const nextCursor = Math.max(0, cursor - Math.max(0, removedBeforeCursor));
+          event.target.setSelectionRange?.(nextCursor, nextCursor);
+        }
+        clearTimeout(numberDebounceTimers.get(id));
+        numberDebounceTimers.set(id, setTimeout(() => {
+          commitDownPaymentPercentInput(event.target, module, state, onChange, { normalizeDisplay: false });
+        }, NUMBER_INPUT_DEBOUNCE_MS));
+        return;
+      }
       if (isNumberInput) {
         const sanitizedValue = sanitizeNumberInputText(event.target.value, meta);
         if (event.target.value !== sanitizedValue) {
@@ -127,13 +175,26 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
 
   controls.querySelectorAll('input[data-control-kind="number"]').forEach(input => {
     input.addEventListener('change', event => {
+      if (module.id === 'mortgage' && event.target.dataset.id === 'downPaymentPercent') {
+        commitDownPaymentPercentInput(event.target, module, state, onChange);
+        return;
+      }
       commitNumberInput(event.target, module, state, onChange);
     });
     input.addEventListener('blur', event => {
+      if (module.id === 'mortgage' && event.target.dataset.id === 'downPaymentPercent') {
+        commitDownPaymentPercentInput(event.target, module, state, onChange);
+        return;
+      }
       commitNumberInput(event.target, module, state, onChange);
     });
     input.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
+        if (module.id === 'mortgage' && event.currentTarget.dataset.id === 'downPaymentPercent') {
+          commitDownPaymentPercentInput(event.currentTarget, module, state, onChange);
+          event.currentTarget.blur();
+          return;
+        }
         commitNumberInput(event.currentTarget, module, state, onChange);
         event.currentTarget.blur();
       }
@@ -146,6 +207,26 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
       onChange(id, !state[id]);
     });
   });
+}
+
+function commitDownPaymentPercentInput(input, module, state, onChange, options = {}) {
+  if (!input || !input.dataset) return;
+  const normalizeDisplay = options.normalizeDisplay !== false;
+  clearTimeout(numberDebounceTimers.get(input.dataset.id));
+  numberDebounceTimers.delete(input.dataset.id);
+  const nextPercent = parseNumberInput(input.value);
+  const amountMeta = module.controls.find(item => item.id === 'downPayment');
+
+  if (!Number.isFinite(nextPercent)) {
+    if (normalizeDisplay) {
+      input.value = formatPercentForInput(downPaymentPercent(state.downPayment, state.homePrice));
+    }
+    return;
+  }
+
+  const nextAmount = downPaymentAmountFromPercent(nextPercent, state.homePrice);
+  input.dataset.forceSync = 'true';
+  onChange('downPayment', clampNumberToMeta(amountMeta, nextAmount));
 }
 
 function commitNumberInput(input, module, state, onChange, options = {}) {
@@ -322,6 +403,26 @@ function formatNumberForInput(meta, value) {
   }).format(Number(value));
 }
 
+export function downPaymentPercent(downPayment, homePrice) {
+  const price = Number(homePrice);
+  if (!Number.isFinite(price) || price <= 0) return 0;
+  return Math.min(100, Math.max(0, Number(downPayment) / price * 100));
+}
+
+export function downPaymentAmountFromPercent(percent, homePrice) {
+  const price = Number(homePrice);
+  const safePercent = Math.min(100, Math.max(0, Number(percent)));
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(safePercent)) return 0;
+  return price * safePercent / 100;
+}
+
+export function formatPercentForInput(value) {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(Number.isFinite(Number(value)) ? Number(value) : 0);
+}
+
 function isYearInput(meta) {
   return meta.id.toLowerCase().includes('year') && !meta.prefix;
 }
@@ -360,6 +461,22 @@ export function syncControl({ module, state, id }) {
   }
   delete numberInput.dataset.forceSync;
   document.getElementById(`${id}Display`).textContent = formatNumberForInput(meta, state[id]);
+
+  if (module.id === 'mortgage' && (id === 'downPayment' || id === 'homePrice')) {
+    syncDownPaymentPercent(state);
+  }
+}
+
+function syncDownPaymentPercent(state) {
+  const percentInput = document.getElementById('downPaymentPercentNumber');
+  if (!percentInput) return;
+  const preserveFocusedText = document.activeElement === percentInput && percentInput.dataset.forceSync !== 'true';
+
+  if (!preserveFocusedText) {
+    percentInput.value = formatPercentForInput(downPaymentPercent(state.downPayment, state.homePrice));
+  }
+
+  delete percentInput.dataset.forceSync;
 }
 
 export function renderExtraControls({ module, payoutType, onPayoutTypeChange }) {
