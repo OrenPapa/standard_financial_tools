@@ -1,5 +1,6 @@
 import './numberInput.test.js';
 import './calculatorFields.test.js';
+import './chartDatasets.test.js';
 import './authValidation.test.js';
 import './advancedState.test.js';
 import './pension.test.js';
