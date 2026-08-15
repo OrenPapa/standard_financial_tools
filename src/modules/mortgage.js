@@ -2,8 +2,9 @@ import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
 import { realValueAt } from '../utils/inflation.js';
 import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
+import { applyCalculatorFieldSettings } from '../config/calculatorFields.js';
 
-const defaultState = {
+const baseDefaultState = {
   homePrice: 300000,
   downPayment: 60000,
   annualInterestRate: 5.5,
@@ -17,19 +18,21 @@ const defaultState = {
   annualInflationRate: 2.5
 };
 
-const controls = [
+const baseControls = [
   { id: 'homePrice', label: 'Home price', min: 0, max: 2000000, step: 1000, prefix: 'EUR ', control: 'number', desc: 'Purchase price of the property.' },
   { id: 'downPayment', label: 'Down payment', min: 0, max: 1000000, step: 1000, prefix: 'EUR ', control: 'number', desc: 'Cash paid upfront, reducing the mortgage principal.' },
   { id: 'annualInterestRate', label: 'Mortgage rate', min: 0, max: 20, step: 0.1, suffix: '%', desc: 'Nominal annual mortgage interest rate.' },
   { id: 'mortgageTermYears', label: 'Mortgage term', min: 1, max: 40, step: 1, suffix: 'yrs', desc: 'Planned mortgage repayment period.' },
   { id: 'extraMonthlyPayment', label: 'Extra monthly payment', min: 0, max: 10000, step: 50, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Additional amount paid toward principal each month.' },
-  { id: 'propertyTaxRate', label: 'Property tax rate', min: 0, max: 5, step: 0.1, suffix: '%', advanced: true, inactiveValue: defaultState.propertyTaxRate, desc: 'Annual property tax as a percentage of the home price.' },
-  { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, inactiveValue: defaultState.annualInsurance, desc: 'Estimated yearly homeowners insurance.' },
+  { id: 'propertyTaxRate', label: 'Property tax rate', min: 0, max: 5, step: 0.1, suffix: '%', advanced: true, inactiveValue: baseDefaultState.propertyTaxRate, desc: 'Annual property tax as a percentage of the home price.' },
+  { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, inactiveValue: baseDefaultState.annualInsurance, desc: 'Estimated yearly homeowners insurance.' },
   { id: 'monthlyHOA', label: 'Monthly HOA / maintenance', min: 0, max: 3000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Monthly association dues or maintenance reserve.' },
   { id: 'pmiRate', label: 'PMI rate', min: 0, max: 3, step: 0.1, suffix: '%', advanced: true, desc: 'Annual private mortgage insurance rate, applied while equity is below 20%.' },
   { id: 'closingCosts', label: 'Closing costs', min: 0, max: 100000, step: 500, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time purchase costs counted in total cost, not loan balance.' },
   { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show future monthly costs in today\'s purchasing power.' }
 ];
+
+const { defaultState, controls } = applyCalculatorFieldSettings('mortgage', baseDefaultState, baseControls);
 
 function amortizeMortgage(state) {
   const loanAmount = Math.max(0, state.homePrice - state.downPayment);

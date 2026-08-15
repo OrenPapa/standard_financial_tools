@@ -1,8 +1,9 @@
 import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
+import { applyCalculatorFieldSettings } from '../config/calculatorFields.js';
 
-const defaultState = {
+const baseDefaultState = {
   startAge: 30,
   retirementAge: 65,
   initialMonthlyContrib: 120,
@@ -14,7 +15,7 @@ const defaultState = {
   retirementReturn: 4.0
 };
 
-const controls = [
+const baseControls = [
   { id: 'startAge', label: 'Start age', min: 18, max: 70, step: 1, suffix: 'yrs', desc: 'Age when monthly pension saving begins.' },
   { id: 'retirementAge', label: 'Retirement age', min: 40, max: 80, step: 1, suffix: 'yrs', desc: 'Age when contributions stop and drawdown starts.' },
   { id: 'initialMonthlyContrib', label: 'Initial monthly contribution', min: 0, max: 2000, step: 10, prefix: 'EUR ', desc: 'Monthly amount invested during the first saving year.' },
@@ -25,6 +26,8 @@ const controls = [
   { id: 'payoutYears', label: 'Payout years', min: 1, max: 45, step: 1, suffix: 'yrs', desc: 'Number of years the retirement fund is paid out.' },
   { id: 'retirementReturn', label: 'Retirement annual return', min: 0, max: 12, step: 0.1, suffix: '%', desc: 'Expected annual investment return during retirement drawdown.' }
 ];
+
+const { defaultState, controls } = applyCalculatorFieldSettings('pension', baseDefaultState, baseControls);
 
 function accumulation(state) {
   const years = state.retirementAge - state.startAge;

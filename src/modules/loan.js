@@ -2,8 +2,9 @@ import { euros, eurosPrecise, formatPlain } from '../utils/format.js';
 import { amortizedPayment } from '../utils/amortization.js';
 import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
+import { applyCalculatorFieldSettings } from '../config/calculatorFields.js';
 
-const defaultState = {
+const baseDefaultState = {
   loanAmount: 100000,
   annualInterestRate: 5.5,
   loanTermYears: 20,
@@ -15,7 +16,7 @@ const defaultState = {
   annualInflationRate: 2.5
 };
 
-const controls = [
+const baseControls = [
   { id: 'loanAmount', label: 'Loan amount', min: 0, max: 1000000, step: 1000, prefix: 'EUR ', control: 'number', desc: 'Amount borrowed before fees, interest, or repayments.' },
   { id: 'annualInterestRate', label: 'Annual interest rate', min: 0, max: 25, step: 0.1, suffix: '%', desc: 'Nominal annual interest rate charged on the remaining balance.' },
   { id: 'loanTermYears', label: 'Loan term', min: 1, max: 40, step: 1, suffix: 'yrs', desc: 'Planned repayment period.' },
@@ -26,6 +27,8 @@ const controls = [
   { id: 'balloonPayment', label: 'Balloon payment', min: 0, max: 500000, step: 1000, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Remaining balance intentionally paid at the end of the term.' },
   { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show future payments in today\'s purchasing power.' }
 ];
+
+const { defaultState, controls } = applyCalculatorFieldSettings('loan', baseDefaultState, baseControls);
 
 const paymentsPerYear = {
   monthly: 12,

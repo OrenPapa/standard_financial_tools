@@ -1,19 +1,22 @@
 import { euros, formatPlain } from '../utils/format.js';
 import { lineDataset } from '../ui/chartDatasets.js';
+import { applyCalculatorFieldSettings } from '../config/calculatorFields.js';
 
-const defaultState = {
+const baseDefaultState = {
   amount: 100,
   startYear: 2026,
   targetYear: 2050,
   annualInflationRate: 2.5
 };
 
-const controls = [
+const baseControls = [
   { id: 'amount', label: 'Amount', min: 0, max: 1000000, step: 100, prefix: 'EUR ', control: 'number', desc: 'The money amount in the starting year.' },
   { id: 'startYear', label: 'Starting year', min: 1900, max: 2100, step: 1, desc: 'The year your amount belongs to.' },
   { id: 'targetYear', label: 'Target year', min: 1900, max: 2100, step: 1, desc: 'The year you want to compare against. It can be before or after the starting year.' },
   { id: 'annualInflationRate', label: 'Annual inflation / deflation', min: -10, max: 20, step: 0.1, suffix: '%', desc: 'Average annual price change. Use a negative value for deflation.' }
 ];
+
+const { defaultState, controls } = applyCalculatorFieldSettings('inflation', baseDefaultState, baseControls);
 
 function projectInflation(state) {
   const yearDiff = state.targetYear - state.startYear;

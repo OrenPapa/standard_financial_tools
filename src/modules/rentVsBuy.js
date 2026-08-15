@@ -1,8 +1,9 @@
 import { eurosPrecise, formatPlain } from '../utils/format.js';
 import { calculateRentVsBuy } from '../utils/rentVsBuy.js';
 import { barDataset, lineDataset } from '../ui/chartDatasets.js';
+import { applyCalculatorFieldSettings } from '../config/calculatorFields.js';
 
-const defaultState = {
+const baseDefaultState = {
   monthlyRent: 1200,
   annualRentIncreasePct: 3,
   comparisonYears: 10,
@@ -19,7 +20,7 @@ const defaultState = {
   monthlyInsurance: 0
 };
 
-const controls = [
+const baseControls = [
   { id: 'monthlyRent', label: 'Monthly rent', min: 0, max: 10000, step: 50, prefix: 'EUR ', control: 'number', desc: 'Current monthly rent.' },
   { id: 'annualRentIncreasePct', label: 'Rent increase', min: 0, max: 15, step: 0.1, suffix: '%', desc: 'How much rent is expected to rise each year.' },
   { id: 'comparisonYears', label: 'Compare over', min: 1, max: 50, step: 1, suffix: 'yrs', desc: 'How many years you want to compare renting and buying.' },
@@ -35,6 +36,8 @@ const controls = [
   { id: 'monthlyPropertyTax', label: 'Monthly property tax', min: 0, max: 5000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Optional monthly property tax estimate.' },
   { id: 'monthlyInsurance', label: 'Monthly insurance', min: 0, max: 3000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Optional monthly home insurance estimate.' }
 ];
+
+const { defaultState, controls } = applyCalculatorFieldSettings('rentVsBuy', baseDefaultState, baseControls);
 
 function resultLabel(result) {
   if (result.winner === 'even') return 'Very close';

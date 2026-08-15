@@ -1,8 +1,9 @@
 import { euros, formatPlain } from '../utils/format.js';
 import { realValueLabel } from '../utils/inflation.js';
 import { barDataset, doughnutDataset, lineDataset } from '../ui/chartDatasets.js';
+import { applyCalculatorFieldSettings } from '../config/calculatorFields.js';
 
-const defaultState = {
+const baseDefaultState = {
   initialInvestment: 5000,
   recurringContribution: 200,
   contributionInterval: 'monthly',
@@ -15,7 +16,7 @@ const defaultState = {
   reinvestIncome: true
 };
 
-const controls = [
+const baseControls = [
   { id: 'initialInvestment', label: 'Initial investment', min: 0, max: 250000, step: 500, prefix: 'EUR ', control: 'number', desc: 'Amount invested at the start.' },
   { id: 'recurringContribution', label: 'Recurring contribution', min: 0, max: 10000, step: 50, prefix: 'EUR ', control: 'number', desc: 'Amount added at each contribution interval.' },
   { id: 'contributionInterval', label: 'Contribution interval', type: 'select', options: [['weekly', 'Weekly'], ['monthly', 'Monthly'], ['quarterly', 'Quarterly'], ['semiannual', 'Semi-annually'], ['annual', 'Annually']], desc: 'How often the recurring contribution is added.' },
@@ -27,6 +28,8 @@ const controls = [
   { id: 'taxRate', label: 'Tax on income', min: 0, max: 40, step: 0.1, suffix: '%', advanced: true, desc: 'Tax withheld from each coupon or dividend payment.' },
   { id: 'reinvestIncome', label: 'Reinvest net income', type: 'checkbox', advanced: true, desc: 'When enabled, after-tax income is added back to the portfolio. This only matters when separate income is paid.' }
 ];
+
+const { defaultState, controls } = applyCalculatorFieldSettings('investment', baseDefaultState, baseControls);
 
 function projectInvestment(state) {
   const contributionFrequency = { weekly: 52, monthly: 12, quarterly: 4, semiannual: 2, annual: 1 };

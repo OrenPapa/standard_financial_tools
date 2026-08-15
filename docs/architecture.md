@@ -29,6 +29,19 @@ Reusable renderers live in `src/ui/`:
 - `src/styles/theme.css`: CSS custom properties and page-level styling
 - `src/utils/amortization.js`: shared amortized payment formula for loan-style calculators
 
+## Field Configuration
+
+Calculator field defaults and editable bounds live in `src/config/calculatorFields.js`.
+
+Use that file to change:
+
+- default input values
+- numeric `min`, `max`, and `step`
+- select options
+- advanced-field `inactiveValue` defaults
+
+Module files still own labels, descriptions, prefixes, suffixes, and calculation formulas.
+
 ## Styling Direction
 
 Avoid hard-coded colors inside modules and component renderers.
