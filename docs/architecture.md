@@ -20,7 +20,7 @@ The app shell in `src/app.js` does not know module-specific formulas. It asks th
 
 Reusable renderers live in `src/ui/`:
 
-- `controls.js`: control rendering, debounce behavior, range/number/select/toggle handling
+- `controls.js`: control rendering, blur-based number formatting, range/number/select/toggle handling
 - `kpis.js`: KPI card renderer
 - `table.js`: schedule table renderer
 - `charts.js`: Chart.js setup and tab handling

@@ -38,6 +38,18 @@ const appState = {
       .map(module => [module.id, false])
   )
 };
+const calculatedStateByModule = Object.fromEntries(
+  Object.values(modules).map(module => [module.id, { ...module.defaultState }])
+);
+const calculatedOptionsByModule = Object.fromEntries(
+  Object.values(modules).map(module => [
+    module.id,
+    {
+      advancedEnabled: false,
+      payoutType: appState.payoutType
+    }
+  ])
+);
 let scheduleRenderFrame = 0;
 let scheduleRenderVersion = 0;
 let chartRenderFrame = 0;
@@ -98,8 +110,6 @@ function setControlValue(id, value) {
   if (module.id === 'investment' && (id === 'incomeYield' || id === 'incomeFrequency')) {
     syncControl({ module, state, id: 'reinvestIncome' });
   }
-
-  calculateAndRender();
 }
 
 function renderControlPanel() {
@@ -112,18 +122,19 @@ function renderControlPanel() {
       if (appState.payoutType === nextType) return;
       appState.payoutType = nextType;
       updatePayoutButtons(appState.payoutType);
-      calculateAndRender();
     }
   });
   renderControls({
     module,
     state,
     onChange: setControlValue,
+    onCalculate() {
+      calculateAndRender({ captureCurrentState: true });
+    },
     advancedEnabled: advancedIsEnabled(module.id),
     onAdvancedToggle(nextEnabled) {
       appState.advancedEnabledByModule[module.id] = nextEnabled;
       renderControlPanel();
-      calculateAndRender({ deferCharts: true, deferSchedule: true, showLoaders: true });
     }
   });
 }
@@ -132,20 +143,37 @@ function calculateAndRender(options = {}) {
   const module = activeModule();
   const state = activeState();
   const showLoaders = Boolean(options.showLoaders);
+  const captureCurrentState = Boolean(options.captureCurrentState);
 
   if (showLoaders) {
     startDelayedResultLoader('chartLoader');
     startDelayedResultLoader('scheduleLoader');
   }
 
-  const changedIds = [
-    ...validateNumericState(module, state),
-    ...(module.validateState?.(state) || [])
-  ];
-  changedIds.forEach(id => syncControl({ module, state, id }));
+  if (captureCurrentState) {
+    const changedIds = [
+      ...validateNumericState(module, state),
+      ...(module.validateState?.(state) || [])
+    ];
+    changedIds.forEach(id => syncControl({ module, state, id }));
 
-  const calculationState = calculationStateForAdvanced(module, state, advancedIsEnabled(module.id));
-  const result = module.calculate(calculationState, appState);
+    calculatedStateByModule[module.id] = calculationStateForAdvanced(module, { ...state }, advancedIsEnabled(module.id));
+    calculatedOptionsByModule[module.id] = {
+      advancedEnabled: advancedIsEnabled(module.id),
+      payoutType: appState.payoutType
+    };
+  }
+
+  const calculatedOptions = calculatedOptionsByModule[module.id];
+  const calculatedAppState = {
+    ...appState,
+    payoutType: calculatedOptions.payoutType,
+    advancedEnabledByModule: {
+      ...appState.advancedEnabledByModule,
+      [module.id]: calculatedOptions.advancedEnabled
+    }
+  };
+  const result = module.calculate({ ...calculatedStateByModule[module.id] }, calculatedAppState);
 
   document.getElementById('featureEyebrow').textContent = module.eyebrow;
   document.getElementById('featureTitle').textContent = module.title;
@@ -154,7 +182,8 @@ function calculateAndRender(options = {}) {
   renderResultSchedule({
     module,
     table: result.table,
-    defer: Boolean(options.deferSchedule)
+    defer: Boolean(options.deferSchedule),
+    advancedEnabled: calculatedOptions.advancedEnabled
   });
   renderResultCharts({
     charts: result.charts,
@@ -165,8 +194,8 @@ function calculateAndRender(options = {}) {
   updateChartTabs({ module, activeChart: appState.activeChart });
 }
 
-function renderResultSchedule({ module, table, defer }) {
-  const visibleTable = visibleTableForAdvanced(module, table, advancedIsEnabled(module.id));
+function renderResultSchedule({ module, table, defer, advancedEnabled }) {
+  const visibleTable = visibleTableForAdvanced(module, table, advancedEnabled);
   const selectedColumnKeys = selectedTableColumnKeys(module, visibleTable);
   const selectedColumns = visibleTable.columns.filter(column => selectedColumnKeys.includes(column.key));
 
@@ -285,7 +314,11 @@ function switchModule(moduleId) {
 function switchChart(chartId) {
   appState.activeChart = chartId;
   const module = activeModule();
-  const result = module.calculate(calculationStateForAdvanced(module, activeState(), advancedIsEnabled(module.id)), appState);
+  const calculatedOptions = calculatedOptionsByModule[module.id];
+  const result = module.calculate(
+    { ...calculatedStateByModule[module.id] },
+    { ...appState, payoutType: calculatedOptions.payoutType }
+  );
   renderCharts({ charts: result.charts, activeChart: appState.activeChart });
   updateChartTabs({ module, activeChart: appState.activeChart });
 }
@@ -297,7 +330,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   if (hasAdvancedControls(module)) appState.advancedEnabledByModule[module.id] = false;
   if (module.id === 'pension') appState.payoutType = 'indexed';
   renderControlPanel();
-  calculateAndRender();
+  calculateAndRender({ captureCurrentState: true });
 });
 
 window.addEventListener('hashchange', () => {

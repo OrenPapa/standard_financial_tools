@@ -99,11 +99,9 @@ function inputMarkup(meta, value, inputPaddingClasses, disabled = false) {
   `;
 }
 
-const numberDebounceTimers = new Map();
-const NUMBER_INPUT_DEBOUNCE_MS = 500;
 const NUMERIC_INPUT_PATTERN = /^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/;
 
-export function renderControls({ module, state, onChange, advancedEnabled = false, onAdvancedToggle }) {
+export function renderControls({ module, state, onChange, onCalculate, advancedEnabled = false, onAdvancedToggle }) {
   const controls = document.getElementById('controls');
   const basicControls = module.controls.filter(meta => !meta.advanced);
   const advancedControls = module.controls.filter(meta => meta.advanced);
@@ -123,6 +121,9 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
         ${advancedEnabled ? `<div id="${module.id}AdvancedFields" class="space-y-4 border-t border-white/10 p-3">${advancedControls.map(meta => renderControl(meta, state, module.id)).join('')}</div>` : ''}
       </section>
     ` : ''}
+    <button id="calculateBtn" type="button" class="calculate-button flex w-full items-center justify-center rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-900">
+      Calculate
+    </button>
   `;
 
   controls.querySelectorAll('button[data-advanced-toggle]').forEach(button => {
@@ -146,10 +147,6 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
           const nextCursor = Math.max(0, cursor - Math.max(0, removedBeforeCursor));
           event.target.setSelectionRange?.(nextCursor, nextCursor);
         }
-        clearTimeout(numberDebounceTimers.get(id));
-        numberDebounceTimers.set(id, setTimeout(() => {
-          commitDownPaymentPercentInput(event.target, module, state, onChange, { normalizeDisplay: false });
-        }, NUMBER_INPUT_DEBOUNCE_MS));
         return;
       }
       if (isNumberInput) {
@@ -162,10 +159,6 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
           event.target.setSelectionRange?.(nextCursor, nextCursor);
         }
         document.getElementById(`${id}Display`).textContent = event.target.value;
-        clearTimeout(numberDebounceTimers.get(id));
-        numberDebounceTimers.set(id, setTimeout(() => {
-          commitNumberInput(event.target, module, state, onChange, { normalizeDisplay: false });
-        }, NUMBER_INPUT_DEBOUNCE_MS));
         return;
       }
       const nextValue = meta.type === 'select' ? event.target.value : Number(event.target.value);
@@ -201,6 +194,11 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
     });
   });
 
+  document.getElementById('calculateBtn')?.addEventListener('click', () => {
+    commitPendingNumberInputs(controls, module, state, onChange);
+    onCalculate?.();
+  });
+
   controls.querySelectorAll('button[data-id]').forEach(button => {
     button.addEventListener('click', event => {
       const id = event.currentTarget.dataset.id;
@@ -209,11 +207,20 @@ export function renderControls({ module, state, onChange, advancedEnabled = fals
   });
 }
 
+function commitPendingNumberInputs(container, module, state, onChange) {
+  container.querySelectorAll('input[data-control-kind="number"]').forEach(input => {
+    if (module.id === 'mortgage' && input.dataset.id === 'downPaymentPercent') {
+      commitDownPaymentPercentInput(input, module, state, onChange);
+      return;
+    }
+
+    commitNumberInput(input, module, state, onChange);
+  });
+}
+
 function commitDownPaymentPercentInput(input, module, state, onChange, options = {}) {
   if (!input || !input.dataset) return;
   const normalizeDisplay = options.normalizeDisplay !== false;
-  clearTimeout(numberDebounceTimers.get(input.dataset.id));
-  numberDebounceTimers.delete(input.dataset.id);
   const nextPercent = parseNumberInput(input.value);
   const amountMeta = module.controls.find(item => item.id === 'downPayment');
 
@@ -224,9 +231,17 @@ function commitDownPaymentPercentInput(input, module, state, onChange, options =
     return;
   }
 
-  const nextAmount = downPaymentAmountFromPercent(nextPercent, state.homePrice);
+  const nextAmount = clampNumberToMeta(amountMeta, downPaymentAmountFromPercent(nextPercent, state.homePrice));
+
+  if (Object.is(nextAmount, state.downPayment)) {
+    if (normalizeDisplay) {
+      input.value = formatPercentForInput(downPaymentPercent(state.downPayment, state.homePrice));
+    }
+    return;
+  }
+
   input.dataset.forceSync = 'true';
-  onChange('downPayment', clampNumberToMeta(amountMeta, nextAmount));
+  onChange('downPayment', nextAmount);
 }
 
 function commitNumberInput(input, module, state, onChange, options = {}) {
@@ -234,8 +249,6 @@ function commitNumberInput(input, module, state, onChange, options = {}) {
   const id = input.dataset.id;
   const meta = module.controls.find(item => item.id === id);
   const normalizeDisplay = options.normalizeDisplay !== false;
-  clearTimeout(numberDebounceTimers.get(id));
-  numberDebounceTimers.delete(id);
   const currentValue = state[id];
   const nextValue = parseNumberInput(input.value);
 
@@ -247,7 +260,9 @@ function commitNumberInput(input, module, state, onChange, options = {}) {
     return;
   }
 
-  if (Object.is(nextValue, currentValue)) {
+  const clampedValue = clampNumberToMeta(meta, nextValue);
+
+  if (Object.is(clampedValue, currentValue)) {
     if (normalizeDisplay && meta) {
       input.value = formatNumberForInput(meta, currentValue);
       document.getElementById(`${id}Display`).textContent = formatNumberForInput(meta, currentValue);
@@ -256,7 +271,7 @@ function commitNumberInput(input, module, state, onChange, options = {}) {
   }
 
   input.dataset.forceSync = 'true';
-  onChange(id, clampNumberToMeta(meta, nextValue));
+  onChange(id, clampedValue);
 }
 
 export function parseNumberInput(value) {
