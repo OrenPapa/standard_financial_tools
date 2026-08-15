@@ -12,8 +12,8 @@ runTest('advanced numeric controls use inactive values when disabled', () => {
   const state = { ...mortgageModule.defaultState };
   const calculationState = calculationStateForAdvanced(mortgageModule, state, false);
 
-  assert.equal(calculationState.propertyTaxRate, mortgageModule.defaultState.propertyTaxRate);
-  assert.equal(calculationState.annualInsurance, mortgageModule.defaultState.annualInsurance);
+  assert.equal(calculationState.propertyTaxRate, 0);
+  assert.equal(calculationState.annualInsurance, 0);
   assert.equal(calculationState.extraMonthlyPayment, 0);
   assert.equal(calculationState.homePrice, state.homePrice);
 });

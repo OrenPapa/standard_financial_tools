@@ -4,7 +4,7 @@
 
 The investment module estimates general investment growth from an initial amount, recurring contributions, annual market growth, optional income payments, tax, and reinvestment.
 
-It is designed to start simple. The default visible controls cover a normal investment growth calculation. Income, tax, and reinvestment settings live under advanced settings.
+It is designed to start simple. The default visible controls cover a normal investment growth calculation, including tax on gains. Income and reinvestment settings live under advanced settings.
 
 ## Inputs
 
@@ -16,7 +16,7 @@ It is designed to start simple. The default visible controls cover a normal inve
 - `annualInflationRate`: annual inflation rate used for today's purchasing-power output, as a percent
 - `incomeYield`: annual dividend, coupon, or income yield, as a percent
 - `incomeFrequency`: `none`, `monthly`, `quarterly`, `semiannual`, or `annual`
-- `taxRate`: tax rate applied to each income payment, as a percent
+- `taxRate`: tax rate applied to income payments and estimated market gains, as a percent
 - `reinvestIncome`: whether net income is added back to the investment balance
 
 ## Frequency Variables
@@ -82,7 +82,7 @@ The contribution interval is approximated on a 52-week calendar. For example, mo
 
 ## Income, Tax, And Reinvestment
 
-If income is enabled, each income payment is calculated from the current balance:
+If income is enabled, each income payment is calculated from the current balance and taxed immediately:
 
 ```text
 incomePayment = balance * (incomeYield / 100) / incomePaymentsPerYear
@@ -94,7 +94,7 @@ Totals are tracked as:
 
 ```text
 grossIncome = grossIncome + incomePayment
-taxPaid = taxPaid + tax
+incomeTaxPaid = incomeTaxPaid + tax
 ```
 
 If `reinvestIncome = true`:
@@ -111,26 +111,36 @@ cashIncome = cashIncome + netIncome
 
 This means reinvested income increases future compounding, while non-reinvested income is treated as cash received outside the portfolio.
 
+Market growth from `annualReturn` is treated as an estimated taxable gain at the end of the projection. Annual schedule rows show the same estimate as if the investment were liquidated at that year end:
+
+```text
+marketGrowth = max(0, portfolioValueBeforeFinalTax - totalContributed - reinvestedNetIncome)
+estimatedGainTax = marketGrowth * (taxRate / 100)
+totalTaxPaid = incomeTaxPaid + estimatedGainTax
+```
+
 ## Final Values
 
 At the end of the projection:
 
 ```text
-endingPortfolioValue = balance
-incomeAfterTax = grossIncome - taxPaid
-netWorth = balance + cashIncome
-investmentGain = max(0, netWorth - totalContributed)
-realEndingPortfolioValue = endingPortfolioValue / (1 + annualInflationRate / 100) ^ investmentYears
-realNetWorth = netWorth / (1 + annualInflationRate / 100) ^ investmentYears
+portfolioValueBeforeFinalTax = balance
+finalPortfolioValue = balance - estimatedGainTax
+finalNetValue = finalPortfolioValue + cashIncome
+grossGain = marketGrowth + grossIncome
+netGain = finalNetValue - totalContributed
+realFinalNetValue = finalNetValue / (1 + annualInflationRate / 100) ^ investmentYears
 ```
 
 Where:
 
-- `endingPortfolioValue` is the invested balance still in the portfolio
+- `portfolioValueBeforeFinalTax` is the invested balance before estimated final tax on market growth
+- `finalPortfolioValue` is the portfolio value after estimated final tax
 - `cashIncome` is net income paid out instead of reinvested
-- `netWorth` combines portfolio value plus paid-out cash income
-- `investmentGain` is positive growth above contributed capital
-- `realEndingPortfolioValue` and `realNetWorth` show ending values in today's purchasing power
+- `finalNetValue` combines after-tax portfolio value plus paid-out cash income
+- `grossGain` is market growth plus gross income before tax
+- `netGain` is growth and income left after tax
+- `realFinalNetValue` shows final net value in today's purchasing power
 
 ## Annual Schedule Rows
 
@@ -138,17 +148,17 @@ Every 52 simulation steps, the annual schedule stores:
 
 - year number
 - total contributed
-- gross income received
+- gross gains
 - tax paid
-- cash income paid out
-- year-end portfolio value
-- total net worth
+- net gain
+- final net value
 
 ## Key Assumptions
 
 - `annualReturn` represents market price growth and is separate from `incomeYield`.
 - Income is calculated from the current balance at each income payment date.
 - Income tax is deducted immediately from income payments.
+- Market-growth tax is estimated at the end of the projection, or at each annual schedule row as a year-end liquidation estimate.
 - Reinvested net income is added to the investment balance after tax.
 - Non-reinvested net income remains outside the portfolio but still counts toward net worth.
 - Weekly simulation is an approximation of real contribution and income dates.

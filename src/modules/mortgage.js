@@ -24,8 +24,8 @@ const baseControls = [
   { id: 'annualInterestRate', label: 'Mortgage rate', min: 0, max: 20, step: 0.1, suffix: '%', desc: 'Nominal annual mortgage interest rate.' },
   { id: 'mortgageTermYears', label: 'Mortgage term', min: 1, max: 40, step: 1, suffix: 'yrs', desc: 'Planned mortgage repayment period.' },
   { id: 'extraMonthlyPayment', label: 'Extra monthly payment', min: 0, max: 10000, step: 50, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Additional amount paid toward principal each month.' },
-  { id: 'propertyTaxRate', label: 'Property tax rate', min: 0, max: 5, step: 0.1, suffix: '%', advanced: true, inactiveValue: baseDefaultState.propertyTaxRate, desc: 'Annual property tax as a percentage of the home price.' },
-  { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, inactiveValue: baseDefaultState.annualInsurance, desc: 'Estimated yearly homeowners insurance.' },
+  { id: 'propertyTaxRate', label: 'Property tax rate', min: 0, max: 5, step: 0.1, suffix: '%', advanced: true, desc: 'Annual property tax as a percentage of the home price.' },
+  { id: 'annualInsurance', label: 'Annual insurance', min: 0, max: 20000, step: 100, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Estimated yearly homeowners insurance.' },
   { id: 'monthlyHOA', label: 'Monthly HOA / maintenance', min: 0, max: 3000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Monthly association dues or maintenance reserve.' },
   { id: 'pmiRate', label: 'PMI rate', min: 0, max: 3, step: 0.1, suffix: '%', advanced: true, desc: 'Annual private mortgage insurance rate, applied while equity is below 20%.' },
   { id: 'closingCosts', label: 'Closing costs', min: 0, max: 100000, step: 500, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time purchase costs counted in total cost, not loan balance.' },
@@ -62,8 +62,9 @@ function amortizeMortgage(state) {
     const interest = startingBalance * monthlyRate;
     const equityRatio = state.homePrice > 0 ? (state.homePrice - startingBalance) / state.homePrice : 1;
     const pmiMonthly = equityRatio < 0.2 ? loanAmount * state.pmiRate / 100 / 12 : 0;
-    const principalPayment = Math.min(startingBalance + interest, scheduledPayment + state.extraMonthlyPayment);
-    const endingBalance = Math.max(0, startingBalance + interest - principalPayment);
+    const loanPayment = Math.min(startingBalance + interest, scheduledPayment + state.extraMonthlyPayment);
+    const principalPayment = Math.max(0, loanPayment - interest);
+    const endingBalance = Math.max(0, startingBalance - principalPayment);
     const ownershipCosts = baseMonthlyOwnership + pmiMonthly;
 
     balance = endingBalance;
@@ -81,11 +82,13 @@ function amortizeMortgage(state) {
       startingBalance,
       principal: principalPayment,
       interest,
+      loanPayment,
+      extraPayment: Math.max(0, loanPayment - scheduledPayment),
       taxes: propertyTaxMonthly,
       insurance: insuranceMonthly,
       pmi: pmiMonthly,
       hoa: state.monthlyHOA,
-      totalMonthly: principalPayment + interest + ownershipCosts,
+      totalMonthly: loanPayment + ownershipCosts,
       endingBalance
     });
 
@@ -100,6 +103,7 @@ function amortizeMortgage(state) {
         totalInsurance,
         totalHoa,
         totalPmi,
+        upfrontCash: state.downPayment + state.closingCosts,
         totalOwnershipCosts: totalTaxes + totalInsurance + totalHoa + totalPmi,
         totalPaid: state.downPayment + state.closingCosts + totalPrincipal + totalInterest + totalTaxes + totalInsurance + totalHoa + totalPmi
       });
@@ -117,12 +121,49 @@ function amortizeMortgage(state) {
     baseMonthlyOwnership,
     totalMonthlyPayment: scheduledPayment + baseMonthlyOwnership + currentPmiMonthly,
     totalInterest,
+    totalPrincipal,
+    totalTaxes,
+    totalInsurance,
+    totalHoa,
+    totalPmi,
     totalOwnershipCosts: totalTaxes + totalInsurance + totalHoa + totalPmi,
     totalCost: state.downPayment + state.closingCosts + totalPrincipal + totalInterest + totalTaxes + totalInsurance + totalHoa + totalPmi,
     payoffYears: payoffMonth / 12,
     rows,
     annual
   };
+}
+
+function costBreakdownSlices(result, state) {
+  const slices = [
+    ['Down Payment', state.downPayment, 'contribution'],
+    ['Principal Paid', result.totalPrincipal, 'principal'],
+    ['Interest Paid', result.totalInterest, 'interest']
+  ];
+
+  if (state.closingCosts > 0) {
+    slices.push(['Closing Costs', state.closingCosts, 'feeSlice']);
+  }
+
+  if (result.totalOwnershipCosts > 0) {
+    slices.push(['Ownership Costs', result.totalOwnershipCosts, 'otherCost']);
+  }
+
+  return slices;
+}
+
+function costChartDatasets(result) {
+  const datasets = [
+    barDataset('Upfront Cash', result.annual.map(row => row.upfrontCash), 'principalBarStrong', { borderColorKey: 'principal' }),
+    barDataset('Principal Paid', result.annual.map(row => row.totalPrincipal), 'principalBar', { borderColorKey: 'principal' }),
+    barDataset('Interest Paid', result.annual.map(row => row.totalInterest), 'interestBar', { borderColorKey: 'interest' })
+  ];
+
+  if (result.totalOwnershipCosts > 0) {
+    datasets.push(barDataset('Taxes / Insurance / PMI / HOA', result.annual.map(row => row.totalOwnershipCosts), 'costBar', { borderColorKey: 'cost' }));
+  }
+
+  return datasets;
 }
 
 export const mortgageModule = {
@@ -148,17 +189,23 @@ export const mortgageModule = {
   calculate(state) {
     const result = amortizeMortgage(state);
     const realPaymentYear = Math.min(15, Math.max(1, result.payoffYears));
+    const hasOwnershipCosts = result.totalOwnershipCosts > 0;
+    const hasClosingCosts = state.closingCosts > 0;
+    const totalCostDescription = hasOwnershipCosts || hasClosingCosts
+      ? 'Down payment, closing costs, principal, interest, and ownership costs paid over the mortgage.'
+      : 'Down payment, principal, and interest paid over the mortgage.';
     const realMonthlyCostSubvalue = state.annualInflationRate > 0
       ? `Year ${realPaymentYear.toFixed(realPaymentYear % 1 ? 1 : 0)}: ${eurosPrecise.format(realValueAt(result.totalMonthlyPayment, state.annualInflationRate, realPaymentYear))}`
       : '';
+    const primarySlices = costBreakdownSlices(result, state);
 
     return {
       kpis: [
+        { label: hasOwnershipCosts ? 'Estimated Monthly Cost' : 'Monthly Payment', value: eurosPrecise.format(result.totalMonthlyPayment), subvalue: realMonthlyCostSubvalue, desc: hasOwnershipCosts ? 'Principal, interest, estimated taxes, insurance, PMI, and HOA.' : 'Scheduled principal and interest payment before optional advanced costs.' },
+        { label: 'Down Payment', value: euros.format(state.downPayment), desc: 'Cash paid upfront toward the home price.' },
         { label: 'Loan Amount', value: euros.format(result.loanAmount), desc: 'Home price minus down payment.' },
-        { label: 'Principal & Interest', value: eurosPrecise.format(result.scheduledPayment), desc: 'Scheduled monthly mortgage payment before taxes, insurance, PMI, HOA, and extras.' },
-        { label: 'Estimated Monthly Cost', value: eurosPrecise.format(result.totalMonthlyPayment), subvalue: realMonthlyCostSubvalue, desc: 'Principal, interest, estimated taxes, insurance, PMI, and HOA. The secondary value shows its future purchasing-power feel.' },
         { label: 'Total Interest', value: euros.format(result.totalInterest), desc: 'Total interest paid over the mortgage.' },
-        { label: 'Payoff Time', value: `${result.payoffYears.toFixed(1)} yrs`, desc: 'Estimated time until the mortgage balance reaches zero.' }
+        { label: 'Total Cost', value: euros.format(result.totalCost), desc: totalCostDescription }
       ],
       table: {
         title: 'Mortgage Amortization Schedule',
@@ -176,16 +223,15 @@ export const mortgageModule = {
       charts: {
         primary: {
           type: 'doughnut',
-          title: 'Monthly Payment Snapshot',
-          subtitle: 'Principal & interest, property taxes, home insurance, and other costs',
-          labels: ['Principal & Interest', 'Property Taxes', 'Home Insurance', 'Other Cost'],
+          title: 'Mortgage Cost Allocation',
+          subtitle: hasOwnershipCosts || hasClosingCosts ? 'Lifetime cash paid, including advanced ownership costs' : 'Down payment, principal, and interest over the mortgage',
+          labels: primarySlices.map(([label]) => label),
           datasets: [
-            doughnutDataset('Monthly cost', [
-              result.scheduledPayment,
-              result.propertyTaxMonthly,
-              result.insuranceMonthly,
-              result.pmiMonthly + state.monthlyHOA
-            ], ['principal', 'tax', 'insurance', 'otherCost'])
+            doughnutDataset(
+              'Mortgage cost',
+              primarySlices.map(([, value]) => value),
+              primarySlices.map(([, , color]) => color)
+            )
           ]
         },
         balance: {
@@ -201,15 +247,11 @@ export const mortgageModule = {
         },
         cost: {
           title: 'Mortgage Cost Breakdown',
-          subtitle: 'Cumulative principal, interest, and ownership costs',
+          subtitle: hasOwnershipCosts ? 'Cumulative upfront cash, principal, interest, and ownership costs' : 'Cumulative upfront cash, principal, and interest',
           leftAxis: 'Amount paid',
           rightAxis: '',
           labels: result.annual.map(row => `Y${row.year}`),
-          datasets: [
-            barDataset('Principal Paid', result.annual.map(row => row.totalPrincipal), 'principalBar', { borderColorKey: 'principal' }),
-            barDataset('Interest Paid', result.annual.map(row => row.totalInterest), 'interestBar', { borderColorKey: 'interest' }),
-            barDataset('Taxes / Insurance / PMI / HOA', result.annual.map(row => row.totalOwnershipCosts), 'costBar', { borderColorKey: 'cost' })
-          ]
+          datasets: costChartDatasets(result)
         }
       }
     };

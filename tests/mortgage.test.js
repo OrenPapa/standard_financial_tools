@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mortgageModule } from '../src/modules/mortgage.js';
-import { clone, runTest } from './helpers.js';
+import { calculationStateForAdvanced } from '../src/utils/advancedState.js';
+import { assertClose, clone, runTest } from './helpers.js';
 
 runTest('mortgage validates down payment cannot exceed home price', () => {
   const state = { ...clone(mortgageModule.defaultState), homePrice: 100000, downPayment: 150000 };
@@ -32,6 +33,30 @@ runTest('mortgage with zero interest repays principal evenly', () => {
   assert.equal(result.charts.balance.datasets[1].data.at(-1), 120000);
 });
 
+runTest('mortgage with interest splits payment into principal and interest', () => {
+  const state = {
+    ...clone(mortgageModule.defaultState),
+    homePrice: 120000,
+    downPayment: 20000,
+    annualInterestRate: 12,
+    mortgageTermYears: 1,
+    extraMonthlyPayment: 0,
+    propertyTaxRate: 0,
+    annualInsurance: 0,
+    monthlyHOA: 0,
+    pmiRate: 0,
+    closingCosts: 0
+  };
+  const result = mortgageModule.calculate(state);
+  const firstRow = result.table.rows[0];
+
+  assertClose(result.kpis.find(kpi => kpi.label === 'Monthly Payment').value.replace('€', '').replace(/,/g, ''), 8884.88);
+  assertClose(firstRow.interest, 1000);
+  assertClose(firstRow.principal, 7884.88);
+  assertClose(firstRow.endingBalance, 92115.12);
+  assertClose(firstRow.totalMonthly, 8884.88);
+});
+
 runTest('mortgage ownership costs are included in monthly schedule', () => {
   const state = {
     ...clone(mortgageModule.defaultState),
@@ -53,22 +78,24 @@ runTest('mortgage ownership costs are included in monthly schedule', () => {
   assert.equal(firstRow.totalMonthly, 10270);
 });
 
-runTest('mortgage simple chart shows monthly payment breakdown', () => {
-  const result = mortgageModule.calculate({
+runTest('mortgage simple chart excludes advanced costs when advanced settings are disabled', () => {
+  const state = calculationStateForAdvanced(mortgageModule, {
     ...clone(mortgageModule.defaultState),
     homePrice: 240000,
     downPayment: 60000,
     annualInterestRate: 0,
-    mortgageTermYears: 30,
-    propertyTaxRate: 1,
-    annualInsurance: 1200,
-    monthlyHOA: 50,
-    pmiRate: 0
-  });
+    mortgageTermYears: 30
+  }, false);
+  const result = mortgageModule.calculate(state);
 
   assert.equal(result.charts.primary.type, 'doughnut');
-  assert.deepEqual(result.charts.primary.labels, ['Principal & Interest', 'Property Taxes', 'Home Insurance', 'Other Cost']);
-  assert.deepEqual(result.charts.primary.datasets[0].data, [500, 200, 100, 50]);
+  assert.deepEqual(result.charts.primary.labels, ['Down Payment', 'Principal Paid', 'Interest Paid']);
+  assert.deepEqual(result.charts.primary.datasets[0].data, [60000, 180000, 0]);
+  assert.equal(result.kpis[0].label, 'Monthly Payment');
+  assert.deepEqual(result.charts.cost.datasets.map(dataset => dataset.label), ['Upfront Cash', 'Principal Paid', 'Interest Paid']);
+  assert.equal(result.table.rows[0].taxes, 0);
+  assert.equal(result.table.rows[0].insurance, 0);
+  assert.equal(result.table.rows[0].pmi, 0);
 });
 
 runTest('mortgage advanced charts keep balance and cost detail separated', () => {
@@ -82,8 +109,8 @@ runTest('mortgage advanced charts keep balance and cost detail separated', () =>
 
   assert.equal(result.charts.balance.datasets.length, 2);
   assert.equal(result.charts.balance.datasets[0].label, 'Remaining Balance');
-  assert.equal(result.charts.cost.datasets.length, 3);
-  assert.equal(result.charts.cost.datasets[2].label, 'Taxes / Insurance / PMI / HOA');
+  assert.equal(result.charts.cost.datasets.length, 4);
+  assert.equal(result.charts.cost.datasets[3].label, 'Taxes / Insurance / PMI / HOA');
 });
 
 runTest('mortgage monthly cost subvalue shows year buying power when inflation is active', () => {

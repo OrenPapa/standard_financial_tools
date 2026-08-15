@@ -25,7 +25,7 @@ const baseControls = [
   { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show ending values in today\'s purchasing power.' },
   { id: 'incomeYield', label: 'Income / dividend yield', min: 0, max: 15, step: 0.1, suffix: '%', advanced: true, desc: 'Annual coupon or dividend yield paid separately from growth.' },
   { id: 'incomeFrequency', label: 'Income paid', type: 'select', advanced: true, options: [['none', 'No separate income'], ['monthly', 'Monthly'], ['quarterly', 'Quarterly'], ['semiannual', 'Twice a year'], ['annual', 'Once a year']], desc: 'How often coupons or dividends are paid.' },
-  { id: 'taxRate', label: 'Tax on income', min: 0, max: 40, step: 0.1, suffix: '%', advanced: true, desc: 'Tax withheld from each coupon or dividend payment.' },
+  { id: 'taxRate', label: 'Tax on gains', min: 0, max: 40, step: 0.1, suffix: '%', desc: 'Tax applied to income payments as they occur and estimated market gains at the end.' },
   { id: 'reinvestIncome', label: 'Reinvest net income', type: 'checkbox', advanced: true, desc: 'When enabled, after-tax income is added back to the portfolio. This only matters when separate income is paid.' }
 ];
 
@@ -46,8 +46,9 @@ function projectInvestment(state) {
   let balance = state.initialInvestment;
   let totalContributed = state.initialInvestment;
   let grossIncome = 0;
-  let taxPaid = 0;
+  let incomeTaxPaid = 0;
   let cashIncome = 0;
+  let reinvestedNetIncome = 0;
   const annual = [];
 
   for (let step = 1; step <= totalSteps; step++) {
@@ -64,9 +65,10 @@ function projectInvestment(state) {
       const tax = income * state.taxRate / 100;
       const netIncome = income - tax;
       grossIncome += income;
-      taxPaid += tax;
+      incomeTaxPaid += tax;
       if (state.reinvestIncome) {
         balance += netIncome;
+        reinvestedNetIncome += netIncome;
       } else {
         cashIncome += netIncome;
       }
@@ -74,30 +76,79 @@ function projectInvestment(state) {
     }
 
     if (step % 52 === 0) {
-      const marketGrowth = Math.max(0, balance - totalContributed - (state.reinvestIncome ? grossIncome - taxPaid : 0));
-      annual.push({
-        year: step / 52,
+      const snapshot = investmentSnapshot({
         balance,
         totalContributed,
-        marketGrowth,
         grossIncome,
-        taxPaid,
+        incomeTaxPaid,
         cashIncome,
-        netWorth: balance + cashIncome
+        reinvestedNetIncome,
+        taxRate: state.taxRate
+      });
+
+      annual.push({
+        year: step / 52,
+        balance: snapshot.finalPortfolioValue,
+        portfolioValueBeforeFinalTax: balance,
+        totalContributed,
+        marketGrowth: snapshot.marketGrowth,
+        grossGain: snapshot.grossGain,
+        grossIncome,
+        incomeTaxPaid,
+        estimatedGainTax: snapshot.estimatedGainTax,
+        taxPaid: snapshot.totalTaxPaid,
+        cashIncome,
+        netGain: snapshot.netGain,
+        netWorth: snapshot.finalNetValue
       });
     }
   }
 
-  return {
-    years,
+  const finalSnapshot = investmentSnapshot({
     balance,
     totalContributed,
     grossIncome,
-    taxPaid,
+    incomeTaxPaid,
     cashIncome,
-    netWorth: balance + cashIncome,
-    investmentGain: Math.max(0, balance + cashIncome - totalContributed),
+    reinvestedNetIncome,
+    taxRate: state.taxRate
+  });
+
+  return {
+    years,
+    balance: finalSnapshot.finalPortfolioValue,
+    portfolioValueBeforeFinalTax: balance,
+    totalContributed,
+    grossIncome,
+    incomeTaxPaid,
+    estimatedGainTax: finalSnapshot.estimatedGainTax,
+    taxPaid: finalSnapshot.totalTaxPaid,
+    cashIncome,
+    grossGain: finalSnapshot.grossGain,
+    netGain: finalSnapshot.netGain,
+    netWorth: finalSnapshot.finalNetValue,
+    investmentGain: finalSnapshot.netGain,
     annual
+  };
+}
+
+function investmentSnapshot({ balance, totalContributed, grossIncome, incomeTaxPaid, cashIncome, reinvestedNetIncome, taxRate }) {
+  const marketGrowth = Math.max(0, balance - totalContributed - reinvestedNetIncome);
+  const estimatedGainTax = marketGrowth * taxRate / 100;
+  const finalPortfolioValue = Math.max(0, balance - estimatedGainTax);
+  const finalNetValue = finalPortfolioValue + cashIncome;
+  const grossGain = marketGrowth + grossIncome;
+  const totalTaxPaid = incomeTaxPaid + estimatedGainTax;
+  const netGain = finalNetValue - totalContributed;
+
+  return {
+    marketGrowth,
+    estimatedGainTax,
+    finalPortfolioValue,
+    finalNetValue,
+    grossGain,
+    totalTaxPaid,
+    netGain
   };
 }
 
@@ -108,23 +159,22 @@ export const investmentModule = {
   title: 'Investment Growth & Income',
   defaultState,
   controls,
-  advancedTableColumnKeys: ['grossIncome', 'taxPaid'],
+  advancedTableColumnKeys: [],
   chartTabs: {
     primary: 'Simple',
     growth: 'Growth',
-    income: 'Income'
+    income: 'Tax'
   },
   calculate(state) {
     const result = projectInvestment(state);
-    const lastAnnualRow = result.annual.at(-1) || { marketGrowth: 0 };
 
     return {
       kpis: [
-        { label: 'Ending Portfolio', value: euros.format(result.balance), subvalue: realValueLabel(result.balance, state.annualInflationRate, result.years, euros), desc: 'Investment value still held at the end. The secondary value shows today\'s purchasing power.' },
-        { label: 'Total Net Worth', value: euros.format(result.netWorth), subvalue: realValueLabel(result.netWorth, state.annualInflationRate, result.years, euros), desc: 'Portfolio value plus any income paid out as cash. The secondary value shows today\'s purchasing power.' },
+        { label: 'Final Net Value', value: euros.format(result.netWorth), subvalue: realValueLabel(result.netWorth, state.annualInflationRate, result.years, euros), desc: 'Portfolio value plus paid-out income after estimated tax. The secondary value shows today\'s purchasing power.' },
         { label: 'Total Contributed', value: euros.format(result.totalContributed), desc: 'Initial investment plus all recurring contributions.' },
-        { label: 'Income After Tax', value: euros.format(result.grossIncome - result.taxPaid), desc: 'Coupons or dividends after withholding tax.' },
-        { label: 'Tax Paid', value: euros.format(result.taxPaid), desc: 'Tax withheld from income payments as they occur.' }
+        { label: 'Gross Gains', value: euros.format(result.grossGain), desc: 'Market growth plus gross income before tax.' },
+        { label: 'Tax Paid', value: euros.format(result.taxPaid), desc: 'Income tax paid during the projection plus estimated tax on market gains.' },
+        { label: 'Net Gain', value: euros.format(result.netGain), desc: 'Growth and income left after tax, before returning contributed capital.' }
       ],
       table: {
         title: 'Annual Investment Schedule',
@@ -132,46 +182,45 @@ export const investmentModule = {
         columns: [
           { key: 'year', label: 'Year', format: formatPlain },
           { key: 'totalContributed', label: 'Total Contributed', format: euros.format },
-          { key: 'grossIncome', label: 'Gross Income', format: euros.format },
+          { key: 'grossGain', label: 'Gross Gains', format: euros.format },
           { key: 'taxPaid', label: 'Tax Paid', format: euros.format },
-          { key: 'netWorth', label: 'Total Net Worth', format: euros.format }
+          { key: 'netWorth', label: 'Final Net Value', format: euros.format }
         ]
       },
       charts: {
         primary: {
           type: 'doughnut',
-          title: 'Investment Outcome Snapshot',
-          subtitle: 'Contributions, market growth, net income, and tax',
-          labels: ['Contributions', 'Market Growth', 'Net Income', 'Tax'],
+          title: 'Investment Outcome Allocation',
+          subtitle: 'Contributions, net gains retained, and tax paid',
+          labels: ['Contributions', 'Net Gain', 'Tax Paid'],
           datasets: [
             doughnutDataset('Investment outcome', [
               result.totalContributed,
-              lastAnnualRow.marketGrowth,
-              Math.max(0, result.grossIncome - result.taxPaid),
+              Math.max(0, result.netGain),
               result.taxPaid
-            ], ['contribution', 'growth', 'incomeSlice', 'feeSlice'])
+            ], ['contribution', 'growth', 'feeSlice'])
           ]
         },
         growth: {
-          title: 'Investment Growth',
-          subtitle: 'Contributions compared with total net worth',
+          title: 'Investment Value After Tax',
+          subtitle: 'Contributions compared with final net value over time',
           leftAxis: 'Value',
           rightAxis: '',
           labels: result.annual.map(row => `Y${row.year}`),
           datasets: [
             barDataset('Total Contributed', result.annual.map(row => row.totalContributed), 'principalBar', { borderColorKey: 'principal' }),
-            lineDataset('Total Net Worth', result.annual.map(row => row.netWorth), 'balance')
+            lineDataset('Final Net Value', result.annual.map(row => row.netWorth), 'balance')
           ]
         },
         income: {
-          title: 'Income & Reinvestment',
-          subtitle: 'Portfolio balance and cumulative net income',
+          title: 'Gains & Tax',
+          subtitle: 'Gross gains compared with cumulative tax',
           leftAxis: 'Value',
           rightAxis: '',
           labels: result.annual.map(row => `Y${row.year}`),
           datasets: [
-            lineDataset('Portfolio Balance', result.annual.map(row => row.balance), 'principal'),
-            barDataset('Cumulative Net Income', result.annual.map(row => row.grossIncome - row.taxPaid), 'interestBar', { borderColorKey: 'interest' })
+            lineDataset('Gross Gains', result.annual.map(row => row.grossGain), 'principal'),
+            barDataset('Tax Paid', result.annual.map(row => row.taxPaid), 'interestBar', { borderColorKey: 'interest' })
           ]
         }
       }

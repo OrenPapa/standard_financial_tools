@@ -39,7 +39,10 @@ const appState = {
   )
 };
 const calculatedStateByModule = Object.fromEntries(
-  Object.values(modules).map(module => [module.id, { ...module.defaultState }])
+  Object.values(modules).map(module => [
+    module.id,
+    calculationStateForAdvanced(module, { ...module.defaultState }, false)
+  ])
 );
 const calculatedOptionsByModule = Object.fromEntries(
   Object.values(modules).map(module => [

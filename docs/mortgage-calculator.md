@@ -6,6 +6,8 @@ The mortgage module estimates a home loan payment, total interest, amortization,
 
 It is separate from the general loan calculator because mortgages often include property tax, insurance, PMI, HOA or maintenance, closing costs, and home equity.
 
+When advanced settings are disabled, the calculation uses only home price, down payment, mortgage rate, and mortgage term. The main result breakdown shows down payment, principal paid, and interest paid. Property tax, insurance, PMI, HOA, closing costs, extra payment, and inflation are only included when advanced settings are enabled.
+
 ## Inputs
 
 - `homePrice`: purchase price of the home
@@ -86,7 +88,9 @@ The total cash paid for the month is:
 
 ```text
 monthlyOwnershipCosts = propertyTaxMonthly + insuranceMonthly + monthlyHOA + pmiMonthly
-totalMonthlyPayment = principalPayment + interest + monthlyOwnershipCosts
+loanPayment = min(scheduledPayment + extraMonthlyPayment, startingBalance + interest)
+principalPayment = loanPayment - interest
+totalMonthlyPayment = loanPayment + monthlyOwnershipCosts
 ```
 
 ## Totals
@@ -121,6 +125,16 @@ Equity is shown as:
 equity = max(0, homePrice - endingBalance)
 ```
 
+The primary chart shows a lifetime cash allocation:
+
+```text
+downPayment
+totalPrincipal
+totalInterest
+closingCosts, if enabled
+totalOwnershipCosts, if enabled
+```
+
 ## Monthly Cost Purchasing Power
 
 The estimated monthly cost card shows how the current monthly housing cost would feel in today's purchasing power around year 15, or at payoff if the mortgage is shorter:
@@ -136,6 +150,7 @@ The schedule stores annual rows after each 12 months, plus the payoff month if t
 
 - year
 - ending balance
+- upfront cash
 - principal paid
 - interest paid
 - ownership costs

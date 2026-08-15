@@ -28,12 +28,12 @@ runTest('calculator field settings drive select and checkbox defaults', () => {
   assert.equal(investmentModule.defaultState.reinvestIncome, reinvestIncome.defaultValue);
 });
 
-runTest('calculator field settings drive advanced inactive values', () => {
+runTest('calculator field settings keep mortgage advanced defaults editable without making them inactive values', () => {
   const propertyTaxRate = calculatorFieldSettings.mortgage.fields.propertyTaxRate;
   const annualInsurance = calculatorFieldSettings.mortgage.fields.annualInsurance;
 
   assert.equal(mortgageModule.defaultState.propertyTaxRate, propertyTaxRate.defaultValue);
-  assert.equal(controlById(mortgageModule, 'propertyTaxRate').inactiveValue, propertyTaxRate.inactiveValue);
+  assert.equal(controlById(mortgageModule, 'propertyTaxRate').inactiveValue, undefined);
   assert.equal(mortgageModule.defaultState.annualInsurance, annualInsurance.defaultValue);
-  assert.equal(controlById(mortgageModule, 'annualInsurance').inactiveValue, annualInsurance.inactiveValue);
+  assert.equal(controlById(mortgageModule, 'annualInsurance').inactiveValue, undefined);
 });
