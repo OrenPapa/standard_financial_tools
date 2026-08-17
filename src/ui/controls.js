@@ -407,7 +407,7 @@ function fractionDigitsForStep(step) {
   return stepString.split('.')[1].length;
 }
 
-function formatNumberForInput(meta, value) {
+export function formatNumberForInput(meta, value) {
   if (!Number.isFinite(Number(value))) return value ?? '';
   if (isYearInput(meta)) return String(Math.round(Number(value)));
 

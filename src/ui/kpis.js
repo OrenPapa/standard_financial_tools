@@ -4,6 +4,11 @@ export function renderKpis(items) {
     return;
   }
 
+  if (!Array.isArray(items) && items?.layout === 'mortgageComparison') {
+    renderMortgageComparisonKpis(items);
+    return;
+  }
+
   document.getElementById('kpiGrid').innerHTML = items.map((item, index) => `
     <article class="flex min-h-[172px] flex-col rounded-lg border border-white/10 bg-white/[0.06] p-4">
       <div class="kpi-label flex items-center justify-between gap-2">
@@ -14,6 +19,115 @@ export function renderKpis(items) {
       ${item.subvalue ? `<p class="kpi-subvalue mt-1 text-xs text-slate-400">${item.subvalue}</p>` : ''}
     </article>
   `).join('');
+}
+
+function renderMortgageComparisonKpis(payload) {
+  const scenarios = payload.scenarios || [];
+  const target = document.getElementById('kpiGrid');
+
+  target.innerHTML = `
+    <details class="mortgage-comparison-results-section col-span-full rounded-lg border border-white/10 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/20" open>
+      <summary class="mortgage-comparison-summary cursor-pointer">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="min-w-0 text-lg font-semibold text-white">Results</h2>
+          <span class="mortgage-comparison-caret" aria-hidden="true"></span>
+        </div>
+      </summary>
+      <div class="mortgage-comparison-scroll mt-4">
+        <div class="mortgage-comparison-results">
+        ${scenarios.map(scenario => {
+          const isLowestCost = Math.abs(scenario.totalCost - payload.bestTotalCost) < 0.005;
+          const isLowestPayment = Math.abs(scenario.paymentWithExtra - payload.lowestMonthlyPayment) < 0.005;
+          const tags = [
+            isLowestCost ? '<span class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-md bg-emerald-400 px-2 py-1 text-center text-xs font-bold leading-none text-slate-950">Lowest total</span>' : '',
+            isLowestPayment ? '<span class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-md border border-white/10 px-2 py-1 text-center text-xs font-bold leading-none text-slate-200">Lowest monthly</span>' : ''
+          ].filter(Boolean).join('');
+
+          return `
+            <details class="mortgage-comparison-card shrink-0 rounded-lg border ${isLowestCost ? 'border-emerald-400/35 bg-emerald-500/[0.06]' : 'border-white/10 bg-white/[0.06]'} p-4" data-result-details open>
+              <summary class="mortgage-comparison-summary mortgage-comparison-card-summary flex cursor-pointer items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Scenario</p>
+                  <h3 class="mt-1 truncate text-lg font-semibold text-white">${escapeHtml(scenario.name)}</h3>
+                  ${tags ? `<div class="mt-2 flex flex-wrap gap-1.5">${tags}</div>` : ''}
+                </div>
+                <span class="mortgage-comparison-caret" aria-hidden="true"></span>
+              </summary>
+              <div class="mortgage-comparison-card-body mt-4 grid gap-3 sm:grid-cols-2">
+                ${comparisonMetric('Home price', euros(scenario.homePrice))}
+                ${comparisonMetric('Down payment', euros(scenario.downPayment))}
+                ${comparisonMetric('Loan amount', euros(scenario.loanAmount))}
+                ${comparisonMetric('Rate', `${Number(scenario.annualInterestRate).toFixed(2)}%`)}
+                ${comparisonMetric('Monthly payment', eurosPreciseValue(scenario.paymentWithExtra))}
+                ${comparisonMetric('Total interest', euros(scenario.totalInterest))}
+                ${comparisonMetric('Total cost', euros(scenario.totalCost))}
+                ${comparisonMetric('Payoff time', `${Number(scenario.payoffYears).toFixed(1)} yrs`)}
+              </div>
+            </details>
+          `;
+        }).join('')}
+        </div>
+      </div>
+    </details>
+  `;
+
+  const desktopResultQuery = window.matchMedia('(min-width: 901px)');
+  const syncResultDetails = () => {
+    target.querySelectorAll('details[data-result-details]').forEach(details => {
+      if (desktopResultQuery.matches) details.open = true;
+    });
+  };
+
+  target.querySelectorAll('details[data-result-details] > summary').forEach(summary => {
+    summary.addEventListener('click', event => {
+      if (!desktopResultQuery.matches) return;
+      event.preventDefault();
+      summary.parentElement.open = true;
+    });
+
+    summary.addEventListener('keydown', event => {
+      if (!desktopResultQuery.matches || !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      summary.parentElement.open = true;
+    });
+  });
+
+  desktopResultQuery.addEventListener?.('change', syncResultDetails);
+  syncResultDetails();
+}
+
+function comparisonMetric(label, value) {
+  return `
+    <div class="min-w-0 border-t border-white/10 pt-3 first:border-t-0 first:pt-0 sm:[&:nth-child(2)]:border-t-0 sm:[&:nth-child(2)]:pt-0">
+      <p class="text-xs text-slate-400">${label}</p>
+      <p class="mt-1 [overflow-wrap:anywhere] text-base font-semibold text-white">${value}</p>
+    </div>
+  `;
+}
+
+function euros(value) {
+  return new Intl.NumberFormat('en-IE', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0
+  }).format(value);
+}
+
+function eurosPreciseValue(value) {
+  return new Intl.NumberFormat('en-IE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function renderRentVsBuyKpis(payload) {

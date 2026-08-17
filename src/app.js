@@ -3,11 +3,13 @@ import { investmentModule } from './modules/investment.js';
 import { inflationModule } from './modules/inflation.js';
 import { loanModule } from './modules/loan.js';
 import { mortgageModule } from './modules/mortgage.js';
+import { mortgageComparisonModule, createMortgageComparisonScenario } from './modules/mortgageComparison.js';
 import { rentVsBuyModule } from './modules/rentVsBuy.js';
 import { clampNumberToMeta, renderControls, renderExtraControls, syncControl, updatePayoutButtons, validateNumericState } from './ui/controls.js';
 import { renderKpis } from './ui/kpis.js';
 import { renderSchedule, renderTableColumnControls } from './ui/table.js';
 import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js';
+import { hideMortgageComparisonBuilder, renderMortgageComparisonBuilder } from './ui/mortgageComparison.js';
 import { classes } from './ui/theme.js';
 import { initializeTooltips } from './ui/tooltips.js';
 import { initializeThemePicker } from './ui/themePicker.js';
@@ -20,11 +22,12 @@ const modules = {
   [inflationModule.id]: inflationModule,
   [loanModule.id]: loanModule,
   [mortgageModule.id]: mortgageModule,
+  [mortgageComparisonModule.id]: mortgageComparisonModule,
   [rentVsBuyModule.id]: rentVsBuyModule
 };
 
 const moduleState = Object.fromEntries(
-  Object.values(modules).map(module => [module.id, { ...module.defaultState }])
+  Object.values(modules).map(module => [module.id, cloneState(module.defaultState)])
 );
 
 const appState = {
@@ -41,7 +44,7 @@ const appState = {
 const calculatedStateByModule = Object.fromEntries(
   Object.values(modules).map(module => [
     module.id,
-    calculationStateForAdvanced(module, { ...module.defaultState }, false)
+    calculationStateForAdvanced(module, cloneState(module.defaultState), false)
   ])
 );
 const calculatedOptionsByModule = Object.fromEntries(
@@ -71,6 +74,10 @@ function activeModule() {
 
 function activeState() {
   return moduleState[appState.activeModuleId];
+}
+
+function cloneState(state) {
+  return structuredClone(state);
 }
 
 function advancedIsEnabled(moduleId) {
@@ -118,6 +125,28 @@ function setControlValue(id, value) {
 function renderControlPanel() {
   const module = activeModule();
   const state = activeState();
+
+  document.getElementById('appLayout')?.classList.toggle('comparison-mode', Boolean(module.comparisonModule));
+  document.getElementById('controlsPanel')?.classList.toggle('hidden', Boolean(module.comparisonModule));
+
+  if (module.comparisonModule) {
+    document.getElementById('moduleExtraControls').innerHTML = '';
+    document.getElementById('controls').innerHTML = '';
+    renderMortgageComparisonBuilder({
+      module,
+      state,
+      onChange: setMortgageComparisonValue,
+      onAddScenario: addMortgageComparisonScenario,
+      onRemoveScenario: removeMortgageComparisonScenario,
+      onReset: resetActiveModule,
+      onCalculate() {
+        calculateAndRender({ captureCurrentState: true, scrollToResults: true });
+      }
+    });
+    return;
+  }
+
+  hideMortgageComparisonBuilder();
   renderExtraControls({
     module,
     payoutType: appState.payoutType,
@@ -147,6 +176,7 @@ function calculateAndRender(options = {}) {
   const state = activeState();
   const showLoaders = Boolean(options.showLoaders);
   const captureCurrentState = Boolean(options.captureCurrentState);
+  const scrollToResults = Boolean(options.scrollToResults);
 
   if (showLoaders) {
     startDelayedResultLoader('chartLoader');
@@ -159,8 +189,11 @@ function calculateAndRender(options = {}) {
       ...(module.validateState?.(state) || [])
     ];
     changedIds.forEach(id => syncControl({ module, state, id }));
+    if (module.comparisonModule && changedIds.includes('scenarios')) {
+      renderControlPanel();
+    }
 
-    calculatedStateByModule[module.id] = calculationStateForAdvanced(module, { ...state }, advancedIsEnabled(module.id));
+    calculatedStateByModule[module.id] = calculationStateForAdvanced(module, cloneState(state), advancedIsEnabled(module.id));
     calculatedOptionsByModule[module.id] = {
       advancedEnabled: advancedIsEnabled(module.id),
       payoutType: appState.payoutType
@@ -195,6 +228,12 @@ function calculateAndRender(options = {}) {
     moduleId: module.id
   });
   updateChartTabs({ module, activeChart: appState.activeChart });
+
+  if (scrollToResults) {
+    requestAnimationFrame(() => {
+      document.getElementById('kpiGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 }
 
 function renderResultSchedule({ module, table, defer, advancedEnabled }) {
@@ -326,15 +365,44 @@ function switchChart(chartId) {
   updateChartTabs({ module, activeChart: appState.activeChart });
 }
 
-document.getElementById('resetBtn').addEventListener('click', () => {
+function setMortgageComparisonValue(scenarioIndex, fieldId, value) {
+  const state = activeState();
+  if (!Array.isArray(state.scenarios) || !state.scenarios[scenarioIndex]) return;
+  state.scenarios[scenarioIndex] = {
+    ...state.scenarios[scenarioIndex],
+    [fieldId]: value
+  };
+}
+
+function addMortgageComparisonScenario() {
+  const state = activeState();
+  if (!Array.isArray(state.scenarios)) state.scenarios = [];
+  if (state.scenarios.length >= 8) return;
+  state.scenarios = [
+    ...state.scenarios,
+    createMortgageComparisonScenario(state.scenarios.length)
+  ];
+  renderControlPanel();
+}
+
+function removeMortgageComparisonScenario(index) {
+  const state = activeState();
+  if (!Array.isArray(state.scenarios) || state.scenarios.length <= 2) return;
+  state.scenarios = state.scenarios.filter((_, scenarioIndex) => scenarioIndex !== index);
+  renderControlPanel();
+}
+
+function resetActiveModule() {
   const module = activeModule();
-  moduleState[module.id] = { ...module.defaultState };
+  moduleState[module.id] = cloneState(module.defaultState);
   appState.activeChart = 'primary';
   if (hasAdvancedControls(module)) appState.advancedEnabledByModule[module.id] = false;
   if (module.id === 'pension') appState.payoutType = 'indexed';
   renderControlPanel();
   calculateAndRender({ captureCurrentState: true });
-});
+}
+
+document.getElementById('resetBtn').addEventListener('click', resetActiveModule);
 
 window.addEventListener('hashchange', () => {
   const moduleId = window.location.hash.replace('#', '');

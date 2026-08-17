@@ -20,9 +20,6 @@
   <link rel="stylesheet" href="./src/styles/app.css" />
 </head>
 <body class="min-h-screen text-slate-100 antialiased">
-  <div id="devServerNotice" style="display:none;max-width:44rem;margin:2rem auto;padding:1rem;border:1px solid #f59e0b;border-radius:0.5rem;background:#111827;color:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.5">
-    This source page needs the Vite dev server. Run <code>pnpm dev</code> and open <code>http://127.0.0.1:5173/login.html</code>.
-  </div>
   <main class="auth-page flex min-h-screen w-full items-center justify-center px-4 py-6 sm:px-6">
     <section class="auth-card" aria-label="Authentication">
       <a class="auth-back-link" href="./index.html">
@@ -90,15 +87,5 @@
   </main>
 
   <script type="module" src="./src/login.js"></script>
-  <script>
-    window.setTimeout(() => {
-      const form = document.getElementById('authForm');
-      const notice = document.getElementById('devServerNotice');
-      const stylesApplied = getComputedStyle(document.body).backgroundImage !== 'none';
-      if (notice && form && !stylesApplied) {
-        notice.style.display = 'block';
-      }
-    }, 1500);
-  </script>
 </body>
 </html>

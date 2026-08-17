@@ -486,6 +486,89 @@ details > summary::-webkit-details-marker {
   width: 100%;
 }
 
+.comparison-mode {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.mortgage-comparison-form,
+.mortgage-comparison-card {
+  background: var(--ui-card) !important;
+  border-color: var(--ui-border) !important;
+}
+
+.mortgage-comparison-summary {
+  list-style: none;
+}
+
+.mortgage-comparison-summary::-webkit-details-marker {
+  display: none;
+}
+
+.mortgage-comparison-caret {
+  border-bottom: 2px solid var(--ui-text-muted);
+  border-right: 2px solid var(--ui-text-muted);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 0.55rem;
+  margin-right: 0.125rem;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+  width: 0.55rem;
+}
+
+.mortgage-comparison-form > .mortgage-comparison-summary {
+  cursor: default;
+}
+
+.mortgage-comparison-form > .mortgage-comparison-summary .mortgage-comparison-caret {
+  display: none;
+}
+
+.mortgage-comparison-section[open] > .mortgage-comparison-summary .mortgage-comparison-caret,
+.mortgage-comparison-form[open] > .mortgage-comparison-summary .mortgage-comparison-caret,
+.mortgage-comparison-results-section[open] > .mortgage-comparison-summary .mortgage-comparison-caret,
+.mortgage-comparison-card[open] > .mortgage-comparison-summary .mortgage-comparison-caret {
+  transform: rotate(225deg);
+}
+
+.mortgage-comparison-card > .mortgage-comparison-summary {
+  cursor: default;
+}
+
+.mortgage-comparison-card > .mortgage-comparison-summary .mortgage-comparison-caret {
+  display: none;
+}
+
+.mortgage-comparison-results {
+  align-items: stretch;
+  display: flex;
+  gap: 1rem;
+  min-width: max-content;
+}
+
+.mortgage-comparison-scroll {
+  margin-left: -0.25rem;
+  margin-right: -0.25rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.25rem 0.75rem;
+  scrollbar-width: thin;
+}
+
+.mortgage-comparison-rail {
+  align-items: stretch;
+  display: flex;
+  gap: 1rem;
+  min-width: max-content;
+}
+
+.mortgage-comparison-form {
+  width: min(21rem, calc(100vw - 3rem));
+}
+
+.mortgage-comparison-card {
+  width: min(24rem, calc(100vw - 3rem));
+}
+
 .theme-picker {
   background: var(--ui-panel);
   border: 1px solid var(--ui-border);
@@ -1128,9 +1211,55 @@ header,
 
   .controls-panel input,
   .controls-panel select,
-  .controls-panel button {
+  .controls-panel button,
+  .mortgage-comparison-form input,
+  .mortgage-comparison-form button {
     min-width: 0;
     max-width: 100%;
+  }
+
+  .mortgage-comparison-scroll {
+    margin-left: 0;
+    margin-right: 0;
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  .mortgage-comparison-rail {
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .mortgage-comparison-results {
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .mortgage-comparison-form,
+  .mortgage-comparison-card {
+    width: 100%;
+  }
+
+  .mortgage-comparison-form > .mortgage-comparison-summary {
+    cursor: pointer;
+  }
+
+  .mortgage-comparison-form > .mortgage-comparison-summary .mortgage-comparison-caret {
+    display: inline-block;
+  }
+
+  .mortgage-comparison-card > .mortgage-comparison-summary {
+    cursor: pointer;
+  }
+
+  .mortgage-comparison-card > .mortgage-comparison-summary .mortgage-comparison-caret {
+    display: inline-block;
+  }
+
+  .mortgage-comparison-calculate {
+    width: 100%;
   }
 
   #moduleTabs {

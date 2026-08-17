@@ -26,6 +26,7 @@ Each calculator has a dedicated document with its inputs, formulas, variables, s
 - `docs/inflation-calculator.md`: equivalent value and buying-power formulas for past and future dates.
 - `docs/loan-calculator.md`: amortized payment, extra payment, fees, balloon, and payoff formulas.
 - `docs/mortgage-calculator.md`: mortgage payment, ownership cost, PMI, equity, and total cost formulas.
+- `docs/mortgage-comparison.md`: multi-scenario mortgage comparison cards, charts, and table.
 - `docs/rent-vs-buy-calculator.md`: rent growth, mortgage, home value, equity, and net comparison formulas.
 
 ## Feature Module Direction
@@ -39,6 +40,7 @@ The current modules are:
 - `inflation`: Inflation and deflation comparison calculator for past or future target years.
 - `loan`: Loan payment, cost, and amortization calculator.
 - `mortgage`: Mortgage payment, amortization, and ownership cost calculator.
+- `mortgage-comparison`: Side-by-side mortgage scenario comparison.
 - `rent-vs-buy`: Rent versus buying cost and equity comparison calculator.
 
 Future calculators can be added as additional modules with their own:
