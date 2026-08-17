@@ -22,7 +22,7 @@ const baseControls = [
   { id: 'contributionInterval', label: 'Contribution interval', type: 'select', options: [['weekly', 'Weekly'], ['monthly', 'Monthly'], ['quarterly', 'Quarterly'], ['semiannual', 'Semi-annually'], ['annual', 'Annually']], desc: 'How often the recurring contribution is added.' },
   { id: 'investmentYears', label: 'Investment length', min: 1, max: 50, step: 1, suffix: 'yrs', desc: 'How long the investment runs.' },
   { id: 'annualReturn', label: 'Annual growth rate', min: 0, max: 20, step: 0.1, suffix: '%', desc: 'Expected annual price or fund growth. Do not include separate dividends or coupons here if using income yield.' },
-  { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Average inflation used to show ending values in today\'s purchasing power.' },
+  { id: 'annualInflationRate', label: 'Annual inflation rate', min: 0, max: 10, step: 0.1, suffix: '%', desc: 'Average inflation used to show ending values in today\'s purchasing power.' },
   { id: 'incomeYield', label: 'Income / dividend yield', min: 0, max: 15, step: 0.1, suffix: '%', advanced: true, desc: 'Annual coupon or dividend yield paid separately from growth.' },
   { id: 'incomeFrequency', label: 'Income paid', type: 'select', advanced: true, options: [['none', 'No separate income'], ['monthly', 'Monthly'], ['quarterly', 'Quarterly'], ['semiannual', 'Twice a year'], ['annual', 'Once a year']], desc: 'How often coupons or dividends are paid.' },
   { id: 'taxRate', label: 'Tax on gains', min: 0, max: 40, step: 0.1, suffix: '%', desc: 'Tax applied to income payments as they occur and estimated market gains at the end.' },

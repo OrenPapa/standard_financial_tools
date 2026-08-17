@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { investmentModule } from '../src/modules/investment.js';
+import { calculationStateForAdvanced } from '../src/utils/advancedState.js';
 import { assertClose, clone, runTest } from './helpers.js';
 
 runTest('investment with zero return and no income equals contributed capital', () => {
@@ -47,6 +48,27 @@ runTest('investment applies tax to market gains at the end', () => {
     result.charts.primary.datasets[0].data.map(value => Math.round(value)),
     [10000, 750, 250]
   );
+});
+
+runTest('investment keeps inflation active when advanced settings are disabled', () => {
+  const state = calculationStateForAdvanced(investmentModule, {
+    ...clone(investmentModule.defaultState),
+    initialInvestment: 10000,
+    recurringContribution: 0,
+    investmentYears: 10,
+    annualReturn: 0,
+    incomeYield: 5,
+    incomeFrequency: 'annual',
+    annualInflationRate: 2.5
+  }, false);
+  const result = investmentModule.calculate(state);
+  const finalNetValue = result.kpis.find(kpi => kpi.label === 'Final Net Value');
+  const nominal = Number(finalNetValue.value.replace('€', '').replace(/,/g, ''));
+  const today = Number(finalNetValue.subvalue.replace('Today: €', '').replace(/,/g, ''));
+
+  assert.equal(state.annualInflationRate, 2.5);
+  assert.equal(state.incomeYield, 0);
+  assert.ok(today < nominal);
 });
 
 runTest('investment tracks paid-out income when reinvestment is disabled', () => {

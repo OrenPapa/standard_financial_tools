@@ -4,7 +4,7 @@
 
 The investment module estimates general investment growth from an initial amount, recurring contributions, annual market growth, optional income payments, tax, and reinvestment.
 
-It is designed to start simple. The default visible controls cover a normal investment growth calculation, including tax on gains. Income and reinvestment settings live under advanced settings.
+It is designed to start simple. The default visible controls cover a normal investment growth calculation, including tax on gains and inflation-adjusted purchasing power. Income and reinvestment settings live under advanced settings.
 
 ## Inputs
 
