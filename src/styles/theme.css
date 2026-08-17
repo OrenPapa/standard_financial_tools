@@ -1071,7 +1071,8 @@ details > summary::-webkit-details-marker {
 
 .controls-panel,
 .results-panel > section,
-.results-panel > details {
+.results-panel > details,
+.mortgage-comparison-results-section {
   background: var(--ui-panel) !important;
   border-color: var(--ui-border) !important;
   box-shadow: 0 25px 50px -12px var(--ui-shadow) !important;
