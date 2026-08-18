@@ -599,7 +599,76 @@ details > summary::-webkit-details-marker {
 }
 
 .budget-one-time-month {
-  flex: 0.75 1 7rem;
+  flex: 1 1 12rem;
+}
+
+.budget-month-menu {
+  background: var(--ui-panel-strong);
+  border: 1px solid var(--ui-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 45px var(--ui-shadow);
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: 1fr;
+  left: 0;
+  padding: 0.5rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 50;
+}
+
+.budget-month-clear {
+  border-bottom: 1px solid var(--ui-border) !important;
+  border-radius: 0 !important;
+  color: var(--ui-text-muted) !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  padding: 0.375rem 0.5rem 0.5rem;
+  text-align: left;
+}
+
+.budget-month-clear:hover {
+  background: var(--ui-panel-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+.budget-month-option {
+  align-items: center;
+  color: var(--ui-text-soft);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+}
+
+.budget-month-option:hover {
+  background: var(--ui-panel-soft);
+}
+
+.budget-month-option input {
+  accent-color: var(--chart-emerald);
+  flex: 0 0 auto;
+}
+
+.budget-month-picker-caret {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  color: var(--ui-text-muted);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 0.45rem;
+  transform: rotate(45deg) translateY(-0.1rem);
+  transition: transform 160ms ease;
+  width: 0.45rem;
+}
+
+.budget-month-picker button[aria-expanded="true"] .budget-month-picker-caret {
+  transform: rotate(225deg) translate(-0.05rem, -0.05rem);
 }
 
 .budget-row-field > span {
@@ -1204,6 +1273,7 @@ details > summary::-webkit-details-marker {
 
 input,
 select,
+.budget-month-picker button[data-budget-month-toggle],
 button[aria-pressed],
 #resetBtn,
 #showAllTableColumns {

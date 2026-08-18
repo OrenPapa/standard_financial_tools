@@ -44,6 +44,40 @@ function selectMarkup({ id, value, options, dataset = '' }) {
   `;
 }
 
+function monthPickerLabel(values, options) {
+  const selectedValues = new Set((Array.isArray(values) ? values : []).map(String));
+  const selectedLabels = options
+    .filter(([optionValue]) => selectedValues.has(String(optionValue)))
+    .map(([, label]) => label);
+
+  if (!selectedLabels.length) return 'Select months';
+  if (selectedLabels.length <= 2) return selectedLabels.join(', ');
+  return `${selectedLabels.slice(0, 2).join(', ')} +${selectedLabels.length - 2}`;
+}
+
+function monthPickerMarkup({ id, values, options, dataset = '', kind, index, disabled = false }) {
+  const selectedValues = new Set((Array.isArray(values) ? values : []).map(String));
+  const label = monthPickerLabel(values, options);
+
+  return `
+    <span class="budget-month-picker relative block">
+      <button id="${id}" type="button" ${dataset} data-budget-month-toggle aria-haspopup="true" aria-expanded="false" ${disabled ? 'disabled' : ''} class="${classes.inputBase} flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-60">
+        <span class="budget-month-picker-value truncate">${label}</span>
+        <span class="budget-month-picker-caret" aria-hidden="true"></span>
+      </button>
+      <span class="budget-month-menu hidden" data-budget-month-menu>
+        <button type="button" class="budget-month-clear" data-budget-month-clear>Clear</button>
+        ${options.map(([optionValue, optionLabel]) => `
+          <label class="budget-month-option" for="${id}${optionValue}">
+            <input id="${id}${optionValue}" type="checkbox" value="${optionValue}" ${selectedValues.has(String(optionValue)) ? 'checked' : ''} data-budget-month-option data-budget-row-kind="${kind}" data-budget-row-index="${index}">
+            <span>${optionLabel}</span>
+          </label>
+        `).join('')}
+      </span>
+    </span>
+  `;
+}
+
 function textInput({ id, value, dataset = '', placeholder = '' }) {
   return `
     <input id="${id}" ${dataset} type="text" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" class="${classes.inputBase} px-3 py-2">
@@ -89,7 +123,7 @@ function budgetRow({ kind, row, index, module, canRemove }) {
   const typeLabel = kind === 'income' ? 'Income type' : 'Expense type';
   const oneTimeMonthDisabled = row.frequency !== 'oneTime';
   const customNameHidden = row.type !== 'custom';
-  const monthLabel = kind === 'income' ? 'Income month' : 'Expense month';
+  const monthLabel = kind === 'income' ? 'Income months' : 'Expense months';
 
   return `
     <div class="budget-row rounded-lg border border-white/10 bg-white/[0.04] p-3">
@@ -113,7 +147,7 @@ function budgetRow({ kind, row, index, module, canRemove }) {
           })}
         </label>
         <label class="budget-row-field" for="${kind}${index}Amount">
-          ${fieldLabel('Amount', 'Use the amount for the selected frequency. For one-time rows, use the full one-off amount.')}
+          ${fieldLabel('Amount', 'Use the amount for the selected frequency. For selected-month rows, use the amount paid in each selected month.')}
           ${numericInput({
             id: `${kind}${index}Amount`,
             value: row.amount,
@@ -122,7 +156,7 @@ function budgetRow({ kind, row, index, module, canRemove }) {
           })}
         </label>
         <label class="budget-row-field" for="${kind}${index}Frequency">
-          ${fieldLabel('Frequency', 'Choose how often this row happens. One-time rows happen once in the selected month.')}
+          ${fieldLabel('Frequency', 'Choose how often this row happens. Selected-month rows happen in each selected calendar month.')}
           ${selectMarkup({
             id: `${kind}${index}Frequency`,
             value: row.frequency,
@@ -130,16 +164,18 @@ function budgetRow({ kind, row, index, module, canRemove }) {
             dataset: `data-budget-row-kind="${kind}" data-budget-row-index="${index}" data-budget-row-field="frequency"`
           })}
         </label>
-        <label class="budget-row-field budget-one-time-month ${oneTimeMonthDisabled ? 'hidden' : ''}" for="${kind}${index}OneTimeMonth">
-          ${fieldLabel(monthLabel, 'For one-time rows, choose the forecast month when the income or expense happens.')}
-          ${numericInput({
+        <div class="budget-row-field budget-one-time-month ${oneTimeMonthDisabled ? 'hidden' : ''}">
+          ${fieldLabel(monthLabel, 'Choose every calendar month when this income or expense happens.')}
+          ${monthPickerMarkup({
             id: `${kind}${index}OneTimeMonth`,
-            value: row.oneTimeMonth ?? 1,
-            meta: module.fieldMeta.oneTimeMonth,
+            values: row.oneTimeMonths || [row.oneTimeMonth ?? 1],
+            options: module.monthOptions,
+            kind,
+            index,
             disabled: oneTimeMonthDisabled,
-            dataset: `data-budget-row-kind="${kind}" data-budget-row-index="${index}" data-budget-row-field="oneTimeMonth"`
+            dataset: `data-budget-row-kind="${kind}" data-budget-row-index="${index}" data-budget-row-field="oneTimeMonths"`
           })}
-        </label>
+        </div>
         <button type="button" aria-label="Remove ${kind} row" title="Remove row" data-budget-remove-kind="${kind}" data-budget-remove-index="${index}" ${canRemove ? '' : 'disabled'} class="budget-row-remove flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-sm font-semibold leading-none text-slate-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50">X</button>
       </div>
     </div>
@@ -211,7 +247,7 @@ export function renderBudgetBuilder({ module, state, onFieldChange, onRowChange,
         </section>
         ${rowSection({
           title: 'Income',
-          description: 'Add salary, investment income, bonuses, or any other money coming in. Use One-time for income such as a yearly bonus.',
+          description: 'Add salary, investment income, bonuses, or any other money coming in. Use Selected months for income such as yearly or twice-yearly bonuses.',
           kind: 'income',
           rows: incomes,
           module,
@@ -219,7 +255,7 @@ export function renderBudgetBuilder({ module, state, onFieldChange, onRowChange,
         })}
         ${rowSection({
           title: 'Expenses',
-          description: 'Add recurring bills and spending, plus one-off purchases such as a phone, repair, or trip.',
+          description: 'Add recurring bills and spending, plus scheduled purchases or payments in selected months.',
           kind: 'expense',
           rows: expenses,
           module,
@@ -258,20 +294,62 @@ export function renderBudgetBuilder({ module, state, onFieldChange, onRowChange,
 
   container.querySelectorAll('select[data-budget-row-field]').forEach(select => {
     select.addEventListener('change', event => {
+      const fieldId = event.target.dataset.budgetRowField;
+      const value = event.target.value;
+
       onRowChange(
         event.target.dataset.budgetRowKind,
         Number(event.target.dataset.budgetRowIndex),
-        event.target.dataset.budgetRowField,
-        event.target.value
+        fieldId,
+        value
       );
 
-      if (event.target.dataset.budgetRowField === 'frequency') {
-        syncOneTimeMonthInput(container, event.target, event.target.value === 'oneTime');
+      if (fieldId === 'frequency') {
+        syncOneTimeMonthInput(container, event.target, value === 'oneTime');
       }
 
-      if (event.target.dataset.budgetRowField === 'type') {
-        syncCustomNameInput(container, event.target, event.target.value === 'custom');
+      if (fieldId === 'type') {
+        syncCustomNameInput(container, event.target, value === 'custom');
       }
+    });
+  });
+
+  container.addEventListener('click', closeBudgetMonthPickersOnOutside);
+
+  container.querySelectorAll('button[data-budget-month-toggle]').forEach(button => {
+    button.addEventListener('click', event => {
+      if (button.disabled) return;
+      event.stopPropagation();
+      const picker = button.closest('.budget-month-picker');
+      const menu = picker?.querySelector('[data-budget-month-menu]');
+      if (!menu) return;
+      const willOpen = menu.classList.contains('hidden');
+      closeMonthPickers(container);
+      menu.classList.toggle('hidden', !willOpen);
+      button.setAttribute('aria-expanded', String(willOpen));
+    });
+  });
+
+  container.querySelectorAll('input[data-budget-month-option]').forEach(checkbox => {
+    checkbox.addEventListener('change', event => {
+      const picker = event.target.closest('.budget-month-picker');
+      const options = Array.from(picker?.querySelectorAll('input[data-budget-month-option]') || []);
+      const selectedMonths = options
+        .filter(option => option.checked)
+        .map(option => Number(option.value));
+
+      syncMonthPickerValue(picker, module, onRowChange, selectedMonths);
+    });
+  });
+
+  container.querySelectorAll('button[data-budget-month-clear]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      const picker = event.target.closest('.budget-month-picker');
+      picker?.querySelectorAll('input[data-budget-month-option]').forEach(option => {
+        option.checked = false;
+      });
+      syncMonthPickerValue(picker, module, onRowChange, []);
     });
   });
 
@@ -357,12 +435,16 @@ function commitBudgetInputs(container, module, onFieldChange, onRowChange) {
 }
 
 function syncOneTimeMonthInput(container, frequencySelect, enabled) {
-  const monthInput = container.querySelector(
-    `input[data-budget-row-kind="${frequencySelect.dataset.budgetRowKind}"][data-budget-row-index="${frequencySelect.dataset.budgetRowIndex}"][data-budget-row-field="oneTimeMonth"]`
+  const monthToggle = container.querySelector(
+    `button[data-budget-row-kind="${frequencySelect.dataset.budgetRowKind}"][data-budget-row-index="${frequencySelect.dataset.budgetRowIndex}"][data-budget-row-field="oneTimeMonths"]`
   );
-  if (!monthInput) return;
-  monthInput.disabled = !enabled;
-  monthInput.closest('label')?.classList.toggle('hidden', !enabled);
+  if (!monthToggle) return;
+  monthToggle.disabled = !enabled;
+  monthToggle.closest('.budget-one-time-month')?.classList.toggle('hidden', !enabled);
+  if (!enabled) {
+    monthToggle.setAttribute('aria-expanded', 'false');
+    monthToggle.closest('.budget-month-picker')?.querySelector('[data-budget-month-menu]')?.classList.add('hidden');
+  }
 }
 
 function syncCustomNameInput(container, typeSelect, enabled) {
@@ -379,4 +461,32 @@ function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function closeMonthPickers(container) {
+  container.querySelectorAll('[data-budget-month-menu]').forEach(menu => {
+    menu.classList.add('hidden');
+  });
+  container.querySelectorAll('button[data-budget-month-toggle]').forEach(button => {
+    button.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function closeBudgetMonthPickersOnOutside(event) {
+  if (event.target.closest('.budget-month-picker')) return;
+  closeMonthPickers(event.currentTarget);
+}
+
+function syncMonthPickerValue(picker, module, onRowChange, selectedMonths) {
+  const toggle = picker?.querySelector('button[data-budget-month-toggle]');
+  const label = picker?.querySelector('.budget-month-picker-value');
+  if (!toggle || !label) return;
+
+  label.textContent = monthPickerLabel(selectedMonths, module.monthOptions);
+  onRowChange(
+    toggle.dataset.budgetRowKind,
+    Number(toggle.dataset.budgetRowIndex),
+    'oneTimeMonths',
+    selectedMonths
+  );
 }

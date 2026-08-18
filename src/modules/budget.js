@@ -9,7 +9,22 @@ export const frequencyOptions = [
   ['weekly', 'Weekly'],
   ['monthly', 'Monthly'],
   ['yearly', 'Yearly'],
-  ['oneTime', 'One-time']
+  ['oneTime', 'Selected months']
+];
+
+export const monthOptions = [
+  [1, 'January'],
+  [2, 'February'],
+  [3, 'March'],
+  [4, 'April'],
+  [5, 'May'],
+  [6, 'June'],
+  [7, 'July'],
+  [8, 'August'],
+  [9, 'September'],
+  [10, 'October'],
+  [11, 'November'],
+  [12, 'December']
 ];
 
 export const incomeTypeOptions = [
@@ -61,11 +76,11 @@ const baseFieldMeta = {
   },
   oneTimeMonth: {
     id: 'oneTimeMonth',
-    label: 'Month',
+    label: 'Months',
     min: 1,
-    max: 600,
+    max: 12,
     step: 1,
-    desc: 'Forecast month when a one-time income or expense happens.'
+    desc: 'Calendar months when a selected-month income or expense happens.'
   }
 };
 
@@ -87,13 +102,13 @@ const defaultState = {
   projectionLength: defaultProjectionLength,
   projectionUnit: 'months',
   incomes: [
-    { id: 'income-1', type: 'salary', name: 'Net salary', amount: 2500, frequency: 'monthly', oneTimeMonth: 1 },
-    { id: 'income-2', type: 'investment', name: 'Investment income', amount: 0, frequency: 'monthly', oneTimeMonth: 1 }
+    { id: 'income-1', type: 'salary', name: 'Net salary', amount: 2500, frequency: 'monthly', oneTimeMonth: 1, oneTimeMonths: [1] },
+    { id: 'income-2', type: 'investment', name: 'Investment income', amount: 0, frequency: 'monthly', oneTimeMonth: 1, oneTimeMonths: [1] }
   ],
   expenses: [
-    { id: 'expense-1', type: 'housing', name: 'Rent or mortgage', amount: 900, frequency: 'monthly', oneTimeMonth: 1 },
-    { id: 'expense-2', type: 'food', name: 'Groceries', amount: 100, frequency: 'weekly', oneTimeMonth: 1 },
-    { id: 'expense-3', type: 'utilities', name: 'Utilities', amount: 180, frequency: 'monthly', oneTimeMonth: 1 }
+    { id: 'expense-1', type: 'housing', name: 'Rent or mortgage', amount: 900, frequency: 'monthly', oneTimeMonth: 1, oneTimeMonths: [1] },
+    { id: 'expense-2', type: 'food', name: 'Groceries', amount: 100, frequency: 'weekly', oneTimeMonth: 1, oneTimeMonths: [1] },
+    { id: 'expense-3', type: 'utilities', name: 'Utilities', amount: 180, frequency: 'monthly', oneTimeMonth: 1, oneTimeMonths: [1] }
   ]
 };
 
@@ -115,7 +130,8 @@ export function createBudgetIncome(index) {
     name: '',
     amount: Number(settingDefault('rowAmount', 0)),
     frequency: 'monthly',
-    oneTimeMonth: 1
+    oneTimeMonth: 1,
+    oneTimeMonths: [1]
   };
 }
 
@@ -126,7 +142,8 @@ export function createBudgetExpense(index) {
     name: '',
     amount: Number(settingDefault('rowAmount', 0)),
     frequency: 'monthly',
-    oneTimeMonth: 1
+    oneTimeMonth: 1,
+    oneTimeMonths: [1]
   };
 }
 
@@ -148,25 +165,42 @@ function validOption(value, options, fallback) {
   return options.some(([optionValue]) => optionValue === normalizedValue) ? normalizedValue : fallback;
 }
 
+function monthNumber(value) {
+  const month = Math.round(clampNumber(budgetFieldMeta.oneTimeMonth, value, 1));
+  return Math.min(12, Math.max(1, month));
+}
+
+function sanitizeMonthSelection(row = {}) {
+  const rawMonths = Array.isArray(row.oneTimeMonths)
+    ? row.oneTimeMonths
+    : [row.oneTimeMonth ?? 1];
+  const months = [...new Set(rawMonths.map(monthNumber))].sort((a, b) => a - b);
+  return months;
+}
+
 function sanitizeIncome(row = {}, index = 0) {
+  const oneTimeMonths = sanitizeMonthSelection(row);
   return {
     id: row.id || `income-${index + 1}`,
     type: validOption(row.type, incomeTypeOptions, 'custom'),
     name: sanitizeName(row.name),
     amount: clampNumber(budgetFieldMeta.rowAmount, row.amount, 0),
     frequency: validOption(row.frequency, frequencyOptions, 'monthly'),
-    oneTimeMonth: Math.round(clampNumber(budgetFieldMeta.oneTimeMonth, row.oneTimeMonth, 1))
+    oneTimeMonth: oneTimeMonths[0],
+    oneTimeMonths
   };
 }
 
 function sanitizeExpense(row = {}, index = 0) {
+  const oneTimeMonths = sanitizeMonthSelection(row);
   return {
     id: row.id || `expense-${index + 1}`,
     type: validOption(row.type, expenseTypeOptions, 'custom'),
     name: sanitizeName(row.name),
     amount: clampNumber(budgetFieldMeta.rowAmount, row.amount, 0),
     frequency: validOption(row.frequency, frequencyOptions, 'monthly'),
-    oneTimeMonth: Math.round(clampNumber(budgetFieldMeta.oneTimeMonth, row.oneTimeMonth, 1))
+    oneTimeMonth: oneTimeMonths[0],
+    oneTimeMonths
   };
 }
 
@@ -216,16 +250,27 @@ function projectionMonths(state) {
     : state.projectionLength;
 }
 
+function calendarMonthForForecastMonth(month) {
+  return ((month - 1) % 12) + 1;
+}
+
+function rowHappensInForecastMonth(row, month) {
+  if (row.frequency !== 'oneTime') return false;
+  return row.oneTimeMonths.includes(calendarMonthForForecastMonth(month));
+}
+
 function oneTimeAmountForMonth(rows, month) {
   return rows
-    .filter(row => row.frequency === 'oneTime' && row.oneTimeMonth === month)
+    .filter(row => rowHappensInForecastMonth(row, month))
     .reduce((sum, row) => sum + positiveNumber(row.amount), 0);
 }
 
-function totalOneTime(rows, months) {
-  return rows
-    .filter(row => row.frequency === 'oneTime' && row.oneTimeMonth <= months)
-    .reduce((sum, row) => sum + positiveNumber(row.amount), 0);
+function selectedMonthTotal(row, months) {
+  let total = 0;
+  for (let month = 1; month <= months; month++) {
+    if (rowHappensInForecastMonth(row, month)) total += positiveNumber(row.amount);
+  }
+  return total;
 }
 
 function groupedForecastExpenses(rows, months) {
@@ -233,7 +278,7 @@ function groupedForecastExpenses(rows, months) {
   rows.forEach(row => {
     const label = rowLabel(row, expenseTypeOptions);
     const amount = row.frequency === 'oneTime'
-      ? row.oneTimeMonth <= months ? positiveNumber(row.amount) : 0
+      ? selectedMonthTotal(row, months)
       : monthlyAmount(row) * months;
 
     groups.set(label, (groups.get(label) || 0) + amount);
@@ -288,6 +333,7 @@ export const budgetModule = {
   budgetModule: true,
   fieldMeta: budgetFieldMeta,
   frequencyOptions,
+  monthOptions,
   incomeTypeOptions,
   expenseTypeOptions,
   chartTabs: {
@@ -310,18 +356,16 @@ export const budgetModule = {
     const months = projectionMonths(state);
     const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
     const totalExpenses = rows.reduce((sum, row) => sum + row.expenses, 0);
-    const oneTimeIncome = totalOneTime(state.incomes, months);
-    const oneTimeExpenses = totalOneTime(state.expenses, months);
     const expenseGroups = groupedForecastExpenses(state.expenses, months);
     const horizon = horizonLabel(state);
 
     return {
       kpis: [
         { label: 'Ending Balance', value: euros.format(finalBalance), subvalue: `After ${horizon}`, desc: 'Estimated balance at the end of the selected forecast period after income and expenses.' },
-        { label: 'Total Made', value: euros.format(totalIncome), subvalue: `Across ${horizon}`, desc: 'Total income across the selected forecast period, including recurring and one-time income.' },
-        { label: 'Total Spent', value: euros.format(totalExpenses), subvalue: `Across ${horizon}`, desc: 'Total expenses across the selected forecast period, including recurring and one-time expenses.' },
-        { label: 'Monthly Income', value: euros.format(monthlyIncome), subvalue: `One-time: ${euros.format(oneTimeIncome)}`, desc: 'Recurring income converted to an average monthly amount. The secondary value shows one-time income inside the forecast.' },
-        { label: 'Monthly Expenses', value: euros.format(monthlyExpenses), subvalue: `One-time: ${euros.format(oneTimeExpenses)}`, desc: 'Recurring expenses converted to an average monthly amount. The secondary value shows one-time expenses inside the forecast.' },
+        { label: 'Total Made', value: euros.format(totalIncome), subvalue: `Across ${horizon}`, desc: 'Total income across the selected forecast period, including recurring and selected-month income.' },
+        { label: 'Total Spent', value: euros.format(totalExpenses), subvalue: `Across ${horizon}`, desc: 'Total expenses across the selected forecast period, including recurring and selected-month expenses.' },
+        { label: 'Monthly Income', value: euros.format(monthlyIncome), desc: 'Recurring income converted to an average monthly amount.' },
+        { label: 'Monthly Expenses', value: euros.format(monthlyExpenses), desc: 'Recurring expenses converted to an average monthly amount.' },
         { label: monthlyNet >= 0 ? 'Monthly Surplus' : 'Monthly Shortfall', value: euros.format(monthlyNet), desc: 'Average monthly income minus average monthly expenses.' }
       ],
       table: {
@@ -331,8 +375,8 @@ export const budgetModule = {
           { key: 'month', label: 'Month', format: formatPlain },
           { key: 'income', label: 'Income', format: euros.format },
           { key: 'expenses', label: 'Expenses', format: euros.format },
-          { key: 'oneTimeIncome', label: 'One-Time Income', format: euros.format },
-          { key: 'oneTimeExpenses', label: 'One-Time Expenses', format: euros.format },
+          { key: 'oneTimeIncome', label: 'Selected-Month Income', format: euros.format },
+          { key: 'oneTimeExpenses', label: 'Selected-Month Expenses', format: euros.format },
           { key: 'netCashflow', label: 'Net Cash Flow', format: euros.format },
           { key: 'endingBalance', label: 'Ending Balance', format: euros.format }
         ]
@@ -363,7 +407,7 @@ export const budgetModule = {
         breakdown: {
           type: 'doughnut',
           title: 'Forecast Expense Breakdown',
-          subtitle: 'Recurring and one-time expenses across the selected period',
+          subtitle: 'Recurring and selected-month expenses across the selected period',
           labels: expenseGroups.length ? expenseGroups.map(group => group.label) : ['No expenses'],
           datasets: [
             doughnutDataset('Expenses', expenseGroups.length ? expenseGroups.map(group => group.amount) : [0])

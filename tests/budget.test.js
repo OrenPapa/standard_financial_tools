@@ -40,7 +40,7 @@ runTest('budget projects ending balance over selected horizon', () => {
   assert.equal(result.charts.balance.datasets[0].data.at(-1), 1100);
 });
 
-runTest('budget applies one-time rows only in their selected month', () => {
+runTest('budget migrates old single-month rows into selected-month rows', () => {
   const result = budgetModule.calculate({
     startingBalance: 0,
     projectionLength: 3,
@@ -62,10 +62,55 @@ runTest('budget applies one-time rows only in their selected month', () => {
   assert.ok(result.charts.breakdown.labels.includes('New Laptop'));
   assert.equal(result.kpis[1].value, '€3,500');
   assert.equal(result.kpis[2].value, '€900');
-  assert.equal(result.kpis[3].subvalue, 'One-time: €500');
+  assert.equal(result.kpis[3].subvalue, undefined);
   assert.deepEqual(result.charts.primary.labels, ['M1', 'M2', 'M3']);
   assert.deepEqual(result.charts.primary.datasets[0].data, [1000, 1500, 1000]);
   assert.deepEqual(result.charts.primary.datasets[1].data, [200, 200, 500]);
+});
+
+runTest('budget applies selected-month rows in each matching calendar month', () => {
+  const result = budgetModule.calculate({
+    startingBalance: 0,
+    projectionLength: 14,
+    projectionUnit: 'months',
+    incomes: [
+      { type: 'salary', amount: 1000, frequency: 'monthly' },
+      { type: 'business', amount: 500, frequency: 'oneTime', oneTimeMonths: [2, 8] }
+    ],
+    expenses: [
+      { type: 'food', amount: 200, frequency: 'monthly' },
+      { type: 'custom', name: 'Insurance', amount: 300, frequency: 'oneTime', oneTimeMonths: [3, 9] }
+    ]
+  });
+
+  assert.equal(result.table.rows[1].income, 1500);
+  assert.equal(result.table.rows[7].income, 1500);
+  assert.equal(result.table.rows[13].income, 1500);
+  assert.equal(result.table.rows[2].expenses, 500);
+  assert.equal(result.table.rows[8].expenses, 500);
+  assert.equal(result.kpis[1].value, '€15,500');
+  assert.equal(result.kpis[2].value, '€3,400');
+});
+
+runTest('budget allows selected-month rows with no selected months', () => {
+  const result = budgetModule.calculate({
+    startingBalance: 0,
+    projectionLength: 12,
+    projectionUnit: 'months',
+    incomes: [
+      { type: 'salary', amount: 1000, frequency: 'monthly' },
+      { type: 'business', amount: 500, frequency: 'oneTime', oneTimeMonths: [] }
+    ],
+    expenses: [
+      { type: 'food', amount: 200, frequency: 'monthly' },
+      { type: 'custom', name: 'Insurance', amount: 300, frequency: 'oneTime', oneTimeMonths: [] }
+    ]
+  });
+
+  assert.deepEqual(result.charts.primary.datasets[0].data, Array(12).fill(1000));
+  assert.deepEqual(result.charts.primary.datasets[1].data, Array(12).fill(200));
+  assert.equal(result.kpis[1].value, '€12,000');
+  assert.equal(result.kpis[2].value, '€2,400');
 });
 
 runTest('budget validation keeps one income and one expense row', () => {
@@ -99,6 +144,7 @@ runTest('budget migrates old other type to custom', () => {
 
   assert.equal(state.incomes[0].type, 'custom');
   assert.equal(state.expenses[0].type, 'custom');
+  assert.deepEqual(state.expenses[0].oneTimeMonths, [1]);
 });
 
 runTest('budget exposes cash flow, balance, and expense charts', () => {
