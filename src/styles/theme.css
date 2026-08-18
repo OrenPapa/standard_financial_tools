@@ -569,6 +569,75 @@ details > summary::-webkit-details-marker {
   width: min(24rem, calc(100vw - 3rem));
 }
 
+.budget-builder[open] > .mortgage-comparison-summary .mortgage-comparison-caret {
+  transform: rotate(225deg);
+}
+
+.budget-settings-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.budget-row-grid {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.budget-row-field {
+  display: flex;
+  flex: 1 1 10rem;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.budget-custom-name {
+  flex-basis: 12rem;
+}
+
+.budget-one-time-month {
+  flex: 0.75 1 7rem;
+}
+
+.budget-row-field > span {
+  color: var(--ui-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.budget-field-label {
+  align-items: center;
+  display: flex;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.budget-field-label > span:first-child {
+  min-width: 0;
+}
+
+.budget-control-card,
+.budget-group,
+.budget-row {
+  background: var(--ui-card) !important;
+  border-color: var(--ui-border) !important;
+}
+
+.budget-row-remove {
+  align-self: end;
+  flex: 0 0 auto;
+  min-height: 2.375rem;
+}
+
+.budget-add-short {
+  display: none;
+}
+
 .theme-picker {
   background: var(--ui-panel);
   border: 1px solid var(--ui-border);
@@ -1261,6 +1330,26 @@ header,
 
   .mortgage-comparison-calculate {
     width: 100%;
+  }
+
+  .budget-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-row-grid {
+    align-items: stretch;
+  }
+
+  .budget-row-field {
+    flex-basis: 100%;
+  }
+
+  .budget-add-full {
+    display: none;
+  }
+
+  .budget-add-short {
+    display: inline;
   }
 
   #moduleTabs {

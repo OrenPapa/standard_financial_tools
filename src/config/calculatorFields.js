@@ -94,6 +94,15 @@ export const calculatorFieldSettings = {
       monthlyPropertyTax: { defaultValue: 0, min: 0, max: 5000, step: 25 },
       monthlyInsurance: { defaultValue: 0, min: 0, max: 3000, step: 25 }
     }
+  },
+  budget: {
+    label: 'Budget',
+    fields: {
+      startingBalance: { defaultValue: 2500, min: -1000000, max: 10000000, step: 100 },
+      projectionLength: { defaultValue: 12, min: 1, max: 50, step: 1 },
+      rowAmount: { defaultValue: 0, min: 0, max: 10000000, step: 10 },
+      oneTimeMonth: { defaultValue: 1, min: 1, max: 600, step: 1 }
+    }
   }
 };
 

@@ -5,11 +5,13 @@ import { loanModule } from './modules/loan.js';
 import { mortgageModule } from './modules/mortgage.js';
 import { mortgageComparisonModule, createMortgageComparisonScenario } from './modules/mortgageComparison.js';
 import { rentVsBuyModule } from './modules/rentVsBuy.js';
+import { budgetModule, createBudgetExpense, createBudgetIncome } from './modules/budget.js';
 import { clampNumberToMeta, renderControls, renderExtraControls, syncControl, updatePayoutButtons, validateNumericState } from './ui/controls.js';
 import { renderKpis } from './ui/kpis.js';
 import { renderSchedule, renderTableColumnControls } from './ui/table.js';
 import { renderCharts, renderChartTabs, updateChartTabs } from './ui/charts.js';
 import { hideMortgageComparisonBuilder, renderMortgageComparisonBuilder } from './ui/mortgageComparison.js';
+import { hideBudgetBuilder, renderBudgetBuilder } from './ui/budget.js';
 import { classes } from './ui/theme.js';
 import { initializeTooltips } from './ui/tooltips.js';
 import { initializeThemePicker } from './ui/themePicker.js';
@@ -23,7 +25,8 @@ const modules = {
   [loanModule.id]: loanModule,
   [mortgageModule.id]: mortgageModule,
   [mortgageComparisonModule.id]: mortgageComparisonModule,
-  [rentVsBuyModule.id]: rentVsBuyModule
+  [rentVsBuyModule.id]: rentVsBuyModule,
+  [budgetModule.id]: budgetModule
 };
 
 const moduleState = Object.fromEntries(
@@ -126,8 +129,9 @@ function renderControlPanel() {
   const module = activeModule();
   const state = activeState();
 
-  document.getElementById('appLayout')?.classList.toggle('comparison-mode', Boolean(module.comparisonModule));
-  document.getElementById('controlsPanel')?.classList.toggle('hidden', Boolean(module.comparisonModule));
+  const usesCustomBuilder = Boolean(module.comparisonModule || module.budgetModule);
+  document.getElementById('appLayout')?.classList.toggle('comparison-mode', usesCustomBuilder);
+  document.getElementById('controlsPanel')?.classList.toggle('hidden', usesCustomBuilder);
 
   if (module.comparisonModule) {
     document.getElementById('moduleExtraControls').innerHTML = '';
@@ -146,7 +150,26 @@ function renderControlPanel() {
     return;
   }
 
+  if (module.budgetModule) {
+    document.getElementById('moduleExtraControls').innerHTML = '';
+    document.getElementById('controls').innerHTML = '';
+    renderBudgetBuilder({
+      module,
+      state,
+      onFieldChange: setBudgetFieldValue,
+      onRowChange: setBudgetRowValue,
+      onAddRow: addBudgetRow,
+      onRemoveRow: removeBudgetRow,
+      onReset: resetActiveModule,
+      onCalculate() {
+        calculateAndRender({ captureCurrentState: true, scrollToResults: true });
+      }
+    });
+    return;
+  }
+
   hideMortgageComparisonBuilder();
+  hideBudgetBuilder();
   renderExtraControls({
     module,
     payoutType: appState.payoutType,
@@ -189,7 +212,7 @@ function calculateAndRender(options = {}) {
       ...(module.validateState?.(state) || [])
     ];
     changedIds.forEach(id => syncControl({ module, state, id }));
-    if (module.comparisonModule && changedIds.includes('scenarios')) {
+    if ((module.comparisonModule && changedIds.includes('scenarios')) || (module.budgetModule && changedIds.includes('budget'))) {
       renderControlPanel();
     }
 
@@ -389,6 +412,40 @@ function removeMortgageComparisonScenario(index) {
   const state = activeState();
   if (!Array.isArray(state.scenarios) || state.scenarios.length <= 2) return;
   state.scenarios = state.scenarios.filter((_, scenarioIndex) => scenarioIndex !== index);
+  renderControlPanel();
+}
+
+function setBudgetFieldValue(fieldId, value) {
+  const state = activeState();
+  state[fieldId] = value;
+}
+
+function setBudgetRowValue(kind, rowIndex, fieldId, value) {
+  const state = activeState();
+  const collectionKey = kind === 'income' ? 'incomes' : 'expenses';
+  if (!Array.isArray(state[collectionKey]) || !state[collectionKey][rowIndex]) return;
+  state[collectionKey] = state[collectionKey].map((row, index) => (
+    index === rowIndex ? { ...row, [fieldId]: value } : row
+  ));
+}
+
+function addBudgetRow(kind) {
+  const state = activeState();
+  const collectionKey = kind === 'income' ? 'incomes' : 'expenses';
+  const createRow = kind === 'income' ? createBudgetIncome : createBudgetExpense;
+  if (!Array.isArray(state[collectionKey])) state[collectionKey] = [];
+  state[collectionKey] = [
+    ...state[collectionKey],
+    createRow(state[collectionKey].length)
+  ];
+  renderControlPanel();
+}
+
+function removeBudgetRow(kind, rowIndex) {
+  const state = activeState();
+  const collectionKey = kind === 'income' ? 'incomes' : 'expenses';
+  if (!Array.isArray(state[collectionKey]) || state[collectionKey].length <= 1) return;
+  state[collectionKey] = state[collectionKey].filter((_, index) => index !== rowIndex);
   renderControlPanel();
 }
 
