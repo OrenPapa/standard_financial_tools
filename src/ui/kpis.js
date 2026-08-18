@@ -1,15 +1,20 @@
 export function renderKpis(items) {
+  const target = document.getElementById('kpiGrid');
+
   if (!Array.isArray(items) && items?.layout === 'rentVsBuy') {
+    target.classList.remove('kpi-grid-compact');
     renderRentVsBuyKpis(items);
     return;
   }
 
   if (!Array.isArray(items) && items?.layout === 'mortgageComparison') {
+    target.classList.remove('kpi-grid-compact');
     renderMortgageComparisonKpis(items);
     return;
   }
 
-  document.getElementById('kpiGrid').innerHTML = items.map((item, index) => `
+  target.classList.toggle('kpi-grid-compact', items.length >= 6);
+  target.innerHTML = items.map((item, index) => `
     <article class="flex min-h-[172px] flex-col rounded-lg border border-white/10 bg-white/[0.06] p-4">
       <div class="kpi-label flex items-center justify-between gap-2">
         <p class="text-xs font-medium uppercase tracking-wider text-slate-400">${item.label}</p>

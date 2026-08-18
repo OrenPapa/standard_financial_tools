@@ -308,6 +308,8 @@ export const budgetModule = {
     const rows = forecastRows(state, monthlyIncome, monthlyExpenses);
     const finalBalance = rows.at(-1)?.endingBalance ?? state.startingBalance;
     const months = projectionMonths(state);
+    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
+    const totalExpenses = rows.reduce((sum, row) => sum + row.expenses, 0);
     const oneTimeIncome = totalOneTime(state.incomes, months);
     const oneTimeExpenses = totalOneTime(state.expenses, months);
     const expenseGroups = groupedForecastExpenses(state.expenses, months);
@@ -315,11 +317,12 @@ export const budgetModule = {
 
     return {
       kpis: [
-        { label: 'Starting Balance', value: euros.format(state.startingBalance), desc: 'Current balance before forecasted income and expenses.' },
+        { label: 'Ending Balance', value: euros.format(finalBalance), subvalue: `After ${horizon}`, desc: 'Estimated balance at the end of the selected forecast period after income and expenses.' },
+        { label: 'Total Made', value: euros.format(totalIncome), subvalue: `Across ${horizon}`, desc: 'Total income across the selected forecast period, including recurring and one-time income.' },
+        { label: 'Total Spent', value: euros.format(totalExpenses), subvalue: `Across ${horizon}`, desc: 'Total expenses across the selected forecast period, including recurring and one-time expenses.' },
         { label: 'Monthly Income', value: euros.format(monthlyIncome), subvalue: `One-time: ${euros.format(oneTimeIncome)}`, desc: 'Recurring income converted to an average monthly amount. The secondary value shows one-time income inside the forecast.' },
         { label: 'Monthly Expenses', value: euros.format(monthlyExpenses), subvalue: `One-time: ${euros.format(oneTimeExpenses)}`, desc: 'Recurring expenses converted to an average monthly amount. The secondary value shows one-time expenses inside the forecast.' },
-        { label: monthlyNet >= 0 ? 'Monthly Surplus' : 'Monthly Shortfall', value: euros.format(monthlyNet), desc: 'Average monthly income minus average monthly expenses.' },
-        { label: 'Projected Balance', value: euros.format(finalBalance), subvalue: `After ${horizon}`, desc: 'Estimated balance at the end of the selected forecast period.' }
+        { label: monthlyNet >= 0 ? 'Monthly Surplus' : 'Monthly Shortfall', value: euros.format(monthlyNet), desc: 'Average monthly income minus average monthly expenses.' }
       ],
       table: {
         title: 'Budget Forecast',

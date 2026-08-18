@@ -17,7 +17,10 @@ runTest('budget normalizes income and expenses to monthly amounts', () => {
     ]
   });
 
-  assert.equal(result.kpis[1].label, 'Monthly Income');
+  assert.equal(result.kpis[0].label, 'Ending Balance');
+  assert.equal(result.kpis[1].label, 'Total Made');
+  assert.equal(result.kpis[2].label, 'Total Spent');
+  assert.equal(result.kpis[3].label, 'Monthly Income');
   assertClose(result.table.rows[0].income, 1300);
   assertClose(result.table.rows[0].expenses, 553.33);
   assertClose(result.table.rows[0].netCashflow, 746.67);
@@ -57,7 +60,9 @@ runTest('budget applies one-time rows only in their selected month', () => {
   assert.equal(result.table.rows[2].expenses, 500);
   assert.equal(result.table.rows.at(-1).endingBalance, 2600);
   assert.ok(result.charts.breakdown.labels.includes('New Laptop'));
-  assert.equal(result.kpis[1].subvalue, 'One-time: €500');
+  assert.equal(result.kpis[1].value, '€3,500');
+  assert.equal(result.kpis[2].value, '€900');
+  assert.equal(result.kpis[3].subvalue, 'One-time: €500');
   assert.deepEqual(result.charts.primary.labels, ['M1', 'M2', 'M3']);
   assert.deepEqual(result.charts.primary.datasets[0].data, [1000, 1500, 1000]);
   assert.deepEqual(result.charts.primary.datasets[1].data, [200, 200, 500]);

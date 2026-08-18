@@ -140,7 +140,7 @@ function budgetRow({ kind, row, index, module, canRemove }) {
             dataset: `data-budget-row-kind="${kind}" data-budget-row-index="${index}" data-budget-row-field="oneTimeMonth"`
           })}
         </label>
-        <button type="button" data-budget-remove-kind="${kind}" data-budget-remove-index="${index}" ${canRemove ? '' : 'disabled'} class="budget-row-remove rounded-md border border-white/10 px-2 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50">Remove</button>
+        <button type="button" aria-label="Remove ${kind} row" title="Remove row" data-budget-remove-kind="${kind}" data-budget-remove-index="${index}" ${canRemove ? '' : 'disabled'} class="budget-row-remove flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-sm font-semibold leading-none text-slate-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50">X</button>
       </div>
     </div>
   `;
@@ -148,7 +148,7 @@ function budgetRow({ kind, row, index, module, canRemove }) {
 
 function rowSection({ title, description, kind, rows, module, onAddLabel }) {
   return `
-    <section class="budget-group rounded-lg border border-white/10 bg-white/[0.04] p-3">
+    <section class="budget-group">
       <div class="mb-3 flex items-center justify-between gap-3">
         <div class="min-w-0">
           <h3 class="text-sm font-semibold text-white">${title}</h3>
@@ -188,7 +188,7 @@ export function renderBudgetBuilder({ module, state, onFieldChange, onRowChange,
         <p class="text-sm text-slate-400">Track recurring income and expenses, then forecast the future balance.</p>
       </summary>
       <div class="mt-4 grid gap-4">
-        <section class="budget-group rounded-lg border border-white/10 bg-white/[0.04] p-3">
+        <section class="budget-group">
           <div class="mb-3">
             <h3 class="text-sm font-semibold text-white">Starting Budget</h3>
             <p class="mt-1 text-xs leading-5 text-slate-400">Set today&apos;s balance and how far ahead you want the forecast to run.</p>

@@ -622,7 +622,6 @@ details > summary::-webkit-details-marker {
 }
 
 .budget-control-card,
-.budget-group,
 .budget-row {
   background: var(--ui-card) !important;
   border-color: var(--ui-border) !important;
@@ -1166,6 +1165,41 @@ details > summary::-webkit-details-marker {
 #kpiGrid article {
   background: var(--ui-card) !important;
   border-color: var(--ui-border) !important;
+}
+
+#kpiGrid.kpi-grid-compact {
+  gap: 0.75rem;
+}
+
+#kpiGrid.kpi-grid-compact article {
+  min-height: 8.25rem !important;
+  padding: 0.75rem !important;
+}
+
+#kpiGrid.kpi-grid-compact .kpi-label {
+  align-items: flex-start;
+}
+
+#kpiGrid.kpi-grid-compact .kpi-label p {
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+#kpiGrid.kpi-grid-compact .kpi-value {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  padding-top: 0.75rem;
+}
+
+#kpiGrid.kpi-grid-compact .kpi-subvalue {
+  line-height: 1.25;
+}
+
+@media (min-width: 1280px) {
+  #kpiGrid.kpi-grid-compact {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
 
 input,
