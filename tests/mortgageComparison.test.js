@@ -46,10 +46,58 @@ runTest('mortgage comparison exposes non-pie charts and comparison table', () =>
 
   assert.deepEqual(Object.keys(result.charts), ['primary', 'balance', 'cost']);
   assert.equal(result.charts.primary.type, undefined);
+  assert.equal(result.charts.cost.stacked, true);
+  assert.equal(result.charts.balance.labels[0], 'Y0');
+  assert.deepEqual(
+    result.charts.cost.datasets.map(dataset => dataset.label),
+    ['Down Payment', 'Closing Costs', 'Principal Paid', 'Interest Paid']
+  );
   assert.equal(result.table.rows.length, 2);
   assert.deepEqual(
     result.table.columns.map(column => column.key),
     ['name', 'homePrice', 'downPayment', 'loanAmount', 'rate', 'monthlyPayment', 'totalInterest', 'totalCost', 'payoffYears']
+  );
+});
+
+runTest('mortgage comparison payment chart breaks out principal and interest', () => {
+  const result = mortgageComparisonModule.calculate({
+    scenarios: [
+      {
+        id: 'a',
+        name: 'One year',
+        homePrice: 120000,
+        downPayment: 0,
+        annualInterestRate: 12,
+        mortgageTermYears: 1,
+        closingCosts: 0,
+        extraMonthlyPayment: 1000
+      },
+      {
+        id: 'b',
+        name: 'No interest',
+        homePrice: 120000,
+        downPayment: 0,
+        annualInterestRate: 0,
+        mortgageTermYears: 1,
+        closingCosts: 0,
+        extraMonthlyPayment: 0
+      }
+    ]
+  });
+
+  const [scheduledPrincipalDataset, extraPrincipalDataset, interestDataset] = result.charts.primary.datasets;
+  const firstScenario = result.kpis.scenarios[0];
+
+  assert.equal(result.charts.primary.stacked, true);
+  assert.deepEqual(result.charts.primary.labels, ['One year', 'No interest']);
+  assert.equal(scheduledPrincipalDataset.label, 'Scheduled Principal');
+  assert.equal(extraPrincipalDataset.label, 'Extra Principal');
+  assert.equal(interestDataset.label, 'Interest Paid');
+  assertClose(interestDataset.data[0], 1200);
+  assertClose(extraPrincipalDataset.data[0], 1000);
+  assertClose(
+    scheduledPrincipalDataset.data[0] + extraPrincipalDataset.data[0] + interestDataset.data[0],
+    firstScenario.firstMonthPayment
   );
 });
 

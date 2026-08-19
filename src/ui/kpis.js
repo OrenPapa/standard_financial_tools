@@ -108,10 +108,12 @@ function renderMortgageComparisonKpis(payload) {
           return `
             <details class="mortgage-comparison-card shrink-0 rounded-lg border ${isLowestCost ? 'border-emerald-400/35 bg-emerald-500/[0.06]' : 'border-white/10 bg-white/[0.06]'} p-4" data-result-details open>
               <summary class="mortgage-comparison-summary mortgage-comparison-card-summary flex cursor-pointer items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Scenario</p>
+                <div class="min-w-0 flex-1">
+                  <div class="flex min-w-0 items-start justify-between gap-3">
+                    <p class="shrink-0 text-xs font-semibold uppercase tracking-wider text-slate-400">Scenario</p>
+                    ${tags ? `<div class="flex min-w-0 flex-wrap justify-end gap-1.5">${tags}</div>` : ''}
+                  </div>
                   <h3 class="mt-1 truncate text-lg font-semibold text-white">${escapeHtml(scenario.name)}</h3>
-                  ${tags ? `<div class="mt-2 flex flex-wrap gap-1.5">${tags}</div>` : ''}
                 </div>
                 <span class="mortgage-comparison-caret" aria-hidden="true"></span>
               </summary>

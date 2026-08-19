@@ -37,6 +37,15 @@ const defaultState = {
   ]
 };
 
+const componentColors = {
+  scheduledPrincipal: '#2563eb',
+  extraPrincipal: '#7c3aed',
+  interest: '#f97316',
+  downPayment: '#0891b2',
+  closingCosts: '#db2777',
+  principalPaid: '#16a34a'
+};
+
 function cloneScenario(scenario) {
   return { ...scenario };
 }
@@ -82,24 +91,47 @@ function calculateScenario(scenario, index) {
   let totalPrincipal = 0;
   let totalInterest = 0;
   let payoffMonth = months;
+  let yearlyPrincipal = 0;
+  let yearlyInterest = 0;
+  let firstMonthPrincipal = 0;
+  let firstMonthScheduledPrincipal = 0;
+  let firstMonthExtraPrincipal = 0;
+  let firstMonthInterest = 0;
+  let firstMonthPayment = 0;
 
   for (let month = 1; month <= months && balance > 0.005; month++) {
     const interest = balance * monthlyRate;
     const loanPayment = Math.min(balance + interest, regularPayment);
     const principal = Math.max(0, loanPayment - interest);
+    const scheduledPrincipal = Math.min(principal, Math.max(0, scheduledPayment - interest));
+    const extraPrincipal = Math.max(0, principal - scheduledPrincipal);
+    if (month === 1) {
+      firstMonthPrincipal = principal;
+      firstMonthScheduledPrincipal = scheduledPrincipal;
+      firstMonthExtraPrincipal = extraPrincipal;
+      firstMonthInterest = interest;
+      firstMonthPayment = loanPayment;
+    }
     balance = Math.max(0, balance - principal);
     totalPrincipal += principal;
     totalInterest += interest;
+    yearlyPrincipal += principal;
+    yearlyInterest += interest;
     payoffMonth = month;
 
     if (month % 12 === 0 || balance <= 0.005) {
       annual.push({
         year: Math.ceil(month / 12),
         remainingBalance: balance,
+        yearlyPrincipal,
+        yearlyInterest,
+        yearlyPaid: yearlyPrincipal + yearlyInterest,
         totalPrincipal,
         totalInterest,
         totalPaid: input.downPayment + input.closingCosts + totalPrincipal + totalInterest
       });
+      yearlyPrincipal = 0;
+      yearlyInterest = 0;
     }
   }
 
@@ -110,6 +142,11 @@ function calculateScenario(scenario, index) {
     loanAmount,
     monthlyPayment: scheduledPayment,
     paymentWithExtra: regularPayment,
+    firstMonthPrincipal,
+    firstMonthScheduledPrincipal,
+    firstMonthExtraPrincipal,
+    firstMonthInterest,
+    firstMonthPayment,
     totalPrincipal,
     totalInterest,
     totalCost,
@@ -137,6 +174,11 @@ function comparisonRows(scenarios) {
     totalCost: scenario.totalCost,
     payoffYears: scenario.payoffYears
   }));
+}
+
+function stackedTotalFooter(items) {
+  const total = items.reduce((sum, item) => sum + Number(item.parsed?.y || 0), 0);
+  return `Total: ${eurosPrecise.format(total)}`;
 }
 
 export const mortgageComparisonModule = {
@@ -172,7 +214,7 @@ export const mortgageComparisonModule = {
       .slice(0, 8)
       .map(calculateScenario);
     const maxYears = Math.max(...scenarios.map(scenario => Math.ceil(scenario.payoffYears)), 1);
-    const yearLabels = Array.from({ length: maxYears }, (_, index) => `Y${index + 1}`);
+    const yearLabels = Array.from({ length: maxYears + 1 }, (_, index) => `Y${index}`);
     const bestTotalCost = Math.min(...scenarios.map(scenario => scenario.totalCost));
     const lowestMonthlyPayment = Math.min(...scenarios.map(scenario => scenario.paymentWithExtra));
 
@@ -200,13 +242,17 @@ export const mortgageComparisonModule = {
       },
       charts: {
         primary: {
-          title: 'Monthly Payment Comparison',
-          subtitle: 'Scheduled payment plus any extra principal payment',
+          title: 'Monthly Payment Breakdown',
+          subtitle: 'Scheduled principal, extra principal, and interest in the first payment month',
           leftAxis: 'Monthly payment',
           rightAxis: '',
+          stacked: true,
+          tooltipFooter: stackedTotalFooter,
           labels: scenarios.map(scenario => scenario.name),
           datasets: [
-            barDataset('Monthly Payment', scenarios.map(scenario => scenario.paymentWithExtra), doughnutPalette[0], { borderColorKey: doughnutPalette[0] })
+            barDataset('Scheduled Principal', scenarios.map(scenario => scenario.firstMonthScheduledPrincipal), componentColors.scheduledPrincipal),
+            barDataset('Extra Principal', scenarios.map(scenario => scenario.firstMonthExtraPrincipal), componentColors.extraPrincipal),
+            barDataset('Interest Paid', scenarios.map(scenario => scenario.firstMonthInterest), componentColors.interest)
           ]
         },
         balance: {
@@ -217,21 +263,24 @@ export const mortgageComparisonModule = {
           labels: yearLabels,
           datasets: scenarios.map((scenario, index) => lineDataset(
             scenario.name,
-            yearLabels.map((_, yearIndex) => annualValue(scenario, yearIndex + 1, 'remainingBalance')),
+            yearLabels.map((_, yearIndex) => yearIndex === 0 ? scenario.loanAmount : annualValue(scenario, yearIndex, 'remainingBalance')),
             doughnutPalette[index % doughnutPalette.length]
           ))
         },
         cost: {
-          title: 'Total Cost Over Time',
-          subtitle: 'Down payment, closing costs, principal, and interest paid by year',
+          title: 'Final Cost Components',
+          subtitle: 'Down payment, closing costs, principal, and interest by scenario',
           leftAxis: 'Total cost',
           rightAxis: '',
-          labels: yearLabels,
-          datasets: scenarios.map((scenario, index) => lineDataset(
-            scenario.name,
-            yearLabels.map((_, yearIndex) => annualValue(scenario, yearIndex + 1, 'totalPaid')),
-            doughnutPalette[index % doughnutPalette.length]
-          ))
+          stacked: true,
+          tooltipFooter: stackedTotalFooter,
+          labels: scenarios.map(scenario => scenario.name),
+          datasets: [
+            barDataset('Down Payment', scenarios.map(scenario => scenario.downPayment), componentColors.downPayment),
+            barDataset('Closing Costs', scenarios.map(scenario => scenario.closingCosts), componentColors.closingCosts),
+            barDataset('Principal Paid', scenarios.map(scenario => scenario.totalPrincipal), componentColors.principalPaid),
+            barDataset('Interest Paid', scenarios.map(scenario => scenario.totalInterest), componentColors.interest)
+          ]
         }
       }
     };

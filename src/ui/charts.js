@@ -30,15 +30,17 @@ function chartOptions(chartData) {
             const value = hasScales ? ctx.parsed.y : ctx.parsed;
             const label = hasScales ? ctx.dataset.label : ctx.label;
             return `${label}: ${formatTooltip(value)}`;
-          }
+          },
+          footer: chartData.tooltipFooter
         }
       }
     },
     scales: hasScales ? {
-      x: { ticks: { color: colors.textMuted }, grid: { color: colors.grid } },
+      x: { stacked: Boolean(chartData.stacked), ticks: { color: colors.textMuted }, grid: { color: colors.grid } },
       y: {
         type: 'linear',
         position: 'left',
+        stacked: Boolean(chartData.stacked),
         title: { display: true, text: chartData.leftAxis, color: colors.textMuted },
         ticks: { color: colors.textMuted, callback: formatLeftTick },
         grid: { color: colors.grid }
