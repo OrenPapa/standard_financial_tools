@@ -99,7 +99,7 @@ export const inflationModule = {
           { key: 'yearsFromStart', label: 'Years From Start', format: value => Math.abs(value) },
           { key: 'value', label: 'Equivalent Value', format: euros.format },
           { key: 'buyingPower', label: 'Buying Power', format: euros.format },
-          { key: 'factor', label: 'Price Factor', format: value => `${value.toFixed(3)}x` },
+          { key: 'factor', label: 'Price Factor', format: value => percentage(value) },
         ]
       },
       charts: {

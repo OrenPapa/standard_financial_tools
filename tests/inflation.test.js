@@ -14,6 +14,7 @@ runTest('inflation compounds equivalent value into the future', () => {
   assert.equal(result.table.rows.length, 3);
   assertClose(lastRow.value, 1210);
   assertClose(lastRow.buyingPower, 826.446, 0.001);
+  assert.equal(result.table.columns.find(column => column.key === 'factor').format(lastRow.factor), '121.0%');
 });
 
 runTest('inflation supports past target years', () => {
