@@ -17,10 +17,10 @@ runTest('budget normalizes income and expenses to monthly amounts', () => {
     ]
   });
 
-  assert.equal(result.kpis[0].label, 'Ending Balance');
-  assert.equal(result.kpis[1].label, 'Total Made');
-  assert.equal(result.kpis[2].label, 'Total Spent');
-  assert.equal(result.kpis[3].label, 'Monthly Income');
+  assert.equal(result.kpis.layout, 'budget');
+  assert.equal(result.kpis.surplus.label, 'Monthly Surplus');
+  assert.equal(result.kpis.surplus.income, '€1,300');
+  assert.equal(result.kpis.surplus.expenses, '€553');
   assertClose(result.table.rows[0].income, 1300);
   assertClose(result.table.rows[0].expenses, 553.33);
   assertClose(result.table.rows[0].netCashflow, 746.67);
@@ -38,6 +38,24 @@ runTest('budget projects ending balance over selected horizon', () => {
   assert.equal(result.table.rows.length, 2);
   assert.equal(result.table.rows.at(-1).endingBalance, 1100);
   assert.equal(result.charts.balance.datasets[0].data.at(-1), 1100);
+});
+
+runTest('budget aggregates charts by year for year-based forecasts', () => {
+  const result = budgetModule.calculate({
+    startingBalance: 0,
+    projectionLength: 3,
+    projectionUnit: 'years',
+    incomes: [{ type: 'salary', amount: 1000, frequency: 'monthly' }],
+    expenses: [{ type: 'housing', amount: 500, frequency: 'monthly' }]
+  });
+
+  assert.equal(result.table.rows.length, 36);
+  assert.deepEqual(result.charts.primary.labels, ['Y1', 'Y2', 'Y3']);
+  assert.deepEqual(result.charts.primary.datasets[0].data, [12000, 12000, 12000]);
+  assert.deepEqual(result.charts.primary.datasets[1].data, [6000, 6000, 6000]);
+  assert.deepEqual(result.charts.primary.datasets[2].data, [6000, 6000, 6000]);
+  assert.deepEqual(result.charts.balance.labels, ['Y1', 'Y2', 'Y3']);
+  assert.deepEqual(result.charts.balance.datasets[0].data, [6000, 12000, 18000]);
 });
 
 runTest('budget migrates old single-month rows into selected-month rows', () => {
@@ -60,9 +78,8 @@ runTest('budget migrates old single-month rows into selected-month rows', () => 
   assert.equal(result.table.rows[2].expenses, 500);
   assert.equal(result.table.rows.at(-1).endingBalance, 2600);
   assert.ok(result.charts.breakdown.labels.includes('New Laptop'));
-  assert.equal(result.kpis[1].value, '€3,500');
-  assert.equal(result.kpis[2].value, '€900');
-  assert.equal(result.kpis[3].subvalue, undefined);
+  assert.equal(result.kpis.totals.income, '€3,500');
+  assert.equal(result.kpis.totals.expenses, '€900');
   assert.deepEqual(result.charts.primary.labels, ['M1', 'M2', 'M3']);
   assert.deepEqual(result.charts.primary.datasets[0].data, [1000, 1500, 1000]);
   assert.deepEqual(result.charts.primary.datasets[1].data, [200, 200, 500]);
@@ -88,8 +105,8 @@ runTest('budget applies selected-month rows in each matching calendar month', ()
   assert.equal(result.table.rows[13].income, 1500);
   assert.equal(result.table.rows[2].expenses, 500);
   assert.equal(result.table.rows[8].expenses, 500);
-  assert.equal(result.kpis[1].value, '€15,500');
-  assert.equal(result.kpis[2].value, '€3,400');
+  assert.equal(result.kpis.totals.income, '€15,500');
+  assert.equal(result.kpis.totals.expenses, '€3,400');
 });
 
 runTest('budget allows selected-month rows with no selected months', () => {
@@ -109,8 +126,8 @@ runTest('budget allows selected-month rows with no selected months', () => {
 
   assert.deepEqual(result.charts.primary.datasets[0].data, Array(12).fill(1000));
   assert.deepEqual(result.charts.primary.datasets[1].data, Array(12).fill(200));
-  assert.equal(result.kpis[1].value, '€12,000');
-  assert.equal(result.kpis[2].value, '€2,400');
+  assert.equal(result.kpis.totals.income, '€12,000');
+  assert.equal(result.kpis.totals.expenses, '€2,400');
 });
 
 runTest('budget validation keeps one income and one expense row', () => {
@@ -153,4 +170,44 @@ runTest('budget exposes cash flow, balance, and expense charts', () => {
   assert.deepEqual(Object.keys(result.charts), ['primary', 'balance', 'breakdown']);
   assert.equal(result.table.title, 'Budget Forecast');
   assert.equal(result.charts.breakdown.type, 'doughnut');
+});
+
+runTest('budget exposes fixed forecast period options up to 40 years', () => {
+  assert.deepEqual(budgetModule.forecastPeriodOptions.map(([value]) => value), [
+    'months:1',
+    'months:3',
+    'months:6',
+    'months:12',
+    'years:3',
+    'years:5',
+    'years:10',
+    'years:15',
+    'years:20',
+    'years:25',
+    'years:30',
+    'years:35',
+    'years:40'
+  ]);
+});
+
+runTest('budget marks monthly surplus and shortfall result tones', () => {
+  const surplus = budgetModule.calculate({
+    startingBalance: 0,
+    projectionLength: 1,
+    projectionUnit: 'months',
+    incomes: [{ type: 'salary', amount: 1000, frequency: 'monthly' }],
+    expenses: [{ type: 'food', amount: 500, frequency: 'monthly' }]
+  });
+  const shortfall = budgetModule.calculate({
+    startingBalance: 0,
+    projectionLength: 1,
+    projectionUnit: 'months',
+    incomes: [{ type: 'salary', amount: 500, frequency: 'monthly' }],
+    expenses: [{ type: 'food', amount: 1000, frequency: 'monthly' }]
+  });
+
+  assert.equal(surplus.kpis.surplus.label, 'Monthly Surplus');
+  assert.equal(surplus.kpis.surplus.tone, 'positive');
+  assert.equal(shortfall.kpis.surplus.label, 'Monthly Shortfall');
+  assert.equal(shortfall.kpis.surplus.tone, 'negative');
 });

@@ -157,8 +157,8 @@ function renderControlPanel() {
       module,
       state,
       onFieldChange: setBudgetFieldValue,
-      onRowChange: setBudgetRowValue,
       onAddRow: addBudgetRow,
+      onUpdateRow: updateBudgetRow,
       onRemoveRow: removeBudgetRow,
       onReset: resetActiveModule,
       onCalculate() {
@@ -420,24 +420,29 @@ function setBudgetFieldValue(fieldId, value) {
   state[fieldId] = value;
 }
 
-function setBudgetRowValue(kind, rowIndex, fieldId, value) {
-  const state = activeState();
-  const collectionKey = kind === 'income' ? 'incomes' : 'expenses';
-  if (!Array.isArray(state[collectionKey]) || !state[collectionKey][rowIndex]) return;
-  state[collectionKey] = state[collectionKey].map((row, index) => (
-    index === rowIndex ? { ...row, [fieldId]: value } : row
-  ));
-}
-
-function addBudgetRow(kind) {
+function addBudgetRow(kind, rowData = null) {
   const state = activeState();
   const collectionKey = kind === 'income' ? 'incomes' : 'expenses';
   const createRow = kind === 'income' ? createBudgetIncome : createBudgetExpense;
   if (!Array.isArray(state[collectionKey])) state[collectionKey] = [];
+  const row = {
+    ...createRow(state[collectionKey].length),
+    ...(rowData || {})
+  };
   state[collectionKey] = [
     ...state[collectionKey],
-    createRow(state[collectionKey].length)
+    row
   ];
+  renderControlPanel();
+}
+
+function updateBudgetRow(kind, rowIndex, rowData) {
+  const state = activeState();
+  const collectionKey = kind === 'income' ? 'incomes' : 'expenses';
+  if (!Array.isArray(state[collectionKey]) || !state[collectionKey][rowIndex]) return;
+  state[collectionKey] = state[collectionKey].map((row, index) => (
+    index === rowIndex ? { ...row, ...rowData, id: row.id } : row
+  ));
   renderControlPanel();
 }
 

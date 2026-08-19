@@ -27,6 +27,22 @@ export const monthOptions = [
   [12, 'December']
 ];
 
+export const forecastPeriodOptions = [
+  ['months:1', '1 month'],
+  ['months:3', '3 months'],
+  ['months:6', '6 months'],
+  ['months:12', '12 months'],
+  ['years:3', '3 years'],
+  ['years:5', '5 years'],
+  ['years:10', '10 years'],
+  ['years:15', '15 years'],
+  ['years:20', '20 years'],
+  ['years:25', '25 years'],
+  ['years:30', '30 years'],
+  ['years:35', '35 years'],
+  ['years:40', '40 years']
+];
+
 export const incomeTypeOptions = [
   ['salary', 'Salary'],
   ['investment', 'Investment'],
@@ -210,11 +226,12 @@ function sanitizeName(value) {
 
 function sanitizeState(state) {
   const projectionUnit = state.projectionUnit === 'years' ? 'years' : 'months';
-  const projectionLength = Math.round(clampNumber(
+  let projectionLength = Math.round(clampNumber(
     budgetFieldMeta.projectionLength,
     state.projectionLength,
     defaultProjectionLength
   ));
+  if (projectionUnit === 'years') projectionLength = Math.min(40, projectionLength);
   const incomes = Array.isArray(state.incomes) ? state.incomes.map(sanitizeIncome) : [];
   const expenses = Array.isArray(state.expenses) ? state.expenses.map(sanitizeExpense) : [];
 
@@ -323,6 +340,37 @@ function horizonLabel(state) {
   return `${state.projectionLength} ${unitLabel}`;
 }
 
+function chartRowsForForecast(state, rows) {
+  if (state.projectionUnit !== 'years') {
+    return {
+      interval: 'month',
+      labels: rows.map(row => `M${row.month}`),
+      rows
+    };
+  }
+
+  const yearlyRows = [];
+  for (let year = 1; year <= state.projectionLength; year++) {
+    const yearRows = rows.filter(row => row.year === year);
+    const lastRow = yearRows.at(-1);
+    if (!lastRow) continue;
+
+    yearlyRows.push({
+      year,
+      income: yearRows.reduce((sum, row) => sum + row.income, 0),
+      expenses: yearRows.reduce((sum, row) => sum + row.expenses, 0),
+      netCashflow: yearRows.reduce((sum, row) => sum + row.netCashflow, 0),
+      endingBalance: lastRow.endingBalance
+    });
+  }
+
+  return {
+    interval: 'year',
+    labels: yearlyRows.map(row => `Y${row.year}`),
+    rows: yearlyRows
+  };
+}
+
 export const budgetModule = {
   id: 'budget',
   navLabel: 'Budget',
@@ -334,6 +382,7 @@ export const budgetModule = {
   fieldMeta: budgetFieldMeta,
   frequencyOptions,
   monthOptions,
+  forecastPeriodOptions,
   incomeTypeOptions,
   expenseTypeOptions,
   chartTabs: {
@@ -358,16 +407,38 @@ export const budgetModule = {
     const totalExpenses = rows.reduce((sum, row) => sum + row.expenses, 0);
     const expenseGroups = groupedForecastExpenses(state.expenses, months);
     const horizon = horizonLabel(state);
+    const surplusTone = monthlyNet >= 0 ? 'positive' : 'negative';
+    const projectedTone = finalBalance >= state.startingBalance ? 'positive' : 'negative';
+    const chartForecast = chartRowsForForecast(state, rows);
+    const chartNetTotal = chartForecast.rows.reduce((sum, row) => sum + row.netCashflow, 0);
 
     return {
-      kpis: [
-        { label: 'Ending Balance', value: euros.format(finalBalance), subvalue: `After ${horizon}`, desc: 'Estimated balance at the end of the selected forecast period after income and expenses.' },
-        { label: 'Total Made', value: euros.format(totalIncome), subvalue: `Across ${horizon}`, desc: 'Total income across the selected forecast period, including recurring and selected-month income.' },
-        { label: 'Total Spent', value: euros.format(totalExpenses), subvalue: `Across ${horizon}`, desc: 'Total expenses across the selected forecast period, including recurring and selected-month expenses.' },
-        { label: 'Monthly Income', value: euros.format(monthlyIncome), desc: 'Recurring income converted to an average monthly amount.' },
-        { label: 'Monthly Expenses', value: euros.format(monthlyExpenses), desc: 'Recurring expenses converted to an average monthly amount.' },
-        { label: monthlyNet >= 0 ? 'Monthly Surplus' : 'Monthly Shortfall', value: euros.format(monthlyNet), desc: 'Average monthly income minus average monthly expenses.' }
-      ],
+      kpis: {
+        layout: 'budget',
+        surplus: {
+          label: monthlyNet >= 0 ? 'Monthly Surplus' : 'Monthly Shortfall',
+          value: euros.format(monthlyNet),
+          tone: surplusTone,
+          badge: monthlyNet >= 0 ? 'Positive cash flow' : 'Expenses exceed income',
+          income: euros.format(monthlyIncome),
+          expenses: euros.format(monthlyExpenses),
+          desc: 'Average monthly income minus average monthly expenses.'
+        },
+        projected: {
+          label: 'Projected Balance',
+          value: euros.format(finalBalance),
+          tone: projectedTone,
+          subvalue: `after ${horizon}`,
+          starting: `starting from ${euros.format(state.startingBalance)}`,
+          badge: projectedTone === 'positive' ? 'On track' : 'Balance declines',
+          desc: 'Estimated balance at the end of the selected forecast period after income and expenses.'
+        },
+        totals: {
+          income: euros.format(totalIncome),
+          expenses: euros.format(totalExpenses),
+          horizon
+        }
+      },
       table: {
         title: 'Budget Forecast',
         rows,
@@ -384,14 +455,14 @@ export const budgetModule = {
       charts: {
         primary: {
           title: 'Budget Overview',
-          subtitle: 'Income, expenses, and net cash flow by forecast month',
+          subtitle: `Income, expenses, and net cash flow by forecast ${chartForecast.interval}`,
           leftAxis: 'Amount',
           rightAxis: '',
-          labels: rows.map(row => `M${row.month}`),
+          labels: chartForecast.labels,
           datasets: [
-            barDataset('Income', rows.map(row => row.income), 'income'),
-            barDataset('Expenses', rows.map(row => row.expenses), 'costBar', { borderColorKey: 'cost' }),
-            lineDataset('Net Cash Flow', rows.map(row => row.netCashflow), monthlyNet >= 0 ? 'growth' : 'otherCost')
+            barDataset('Income', chartForecast.rows.map(row => row.income), 'income'),
+            barDataset('Expenses', chartForecast.rows.map(row => row.expenses), 'costBar', { borderColorKey: 'cost' }),
+            lineDataset('Net Cash Flow', chartForecast.rows.map(row => row.netCashflow), chartNetTotal >= 0 ? 'growth' : 'otherCost')
           ]
         },
         balance: {
@@ -399,9 +470,9 @@ export const budgetModule = {
           subtitle: `Estimated balance over ${horizon}`,
           leftAxis: 'Balance',
           rightAxis: '',
-          labels: rows.map(row => `M${row.month}`),
+          labels: chartForecast.labels,
           datasets: [
-            lineDataset('Ending Balance', rows.map(row => row.endingBalance), 'balance')
+            lineDataset('Ending Balance', chartForecast.rows.map(row => row.endingBalance), 'balance')
           ]
         },
         breakdown: {

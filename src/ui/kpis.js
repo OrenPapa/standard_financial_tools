@@ -13,6 +13,12 @@ export function renderKpis(items) {
     return;
   }
 
+  if (!Array.isArray(items) && items?.layout === 'budget') {
+    target.classList.remove('kpi-grid-compact');
+    renderBudgetKpis(items);
+    return;
+  }
+
   target.classList.toggle('kpi-grid-compact', items.length >= 6);
   target.innerHTML = items.map((item, index) => `
     <article class="flex min-h-[172px] flex-col rounded-lg border border-white/10 bg-white/[0.06] p-4">
@@ -20,10 +26,61 @@ export function renderKpis(items) {
         <p class="text-xs font-medium uppercase tracking-wider text-slate-400">${item.label}</p>
         <span class="info-tip relative inline-flex items-center justify-center rounded-full border border-white/15 text-xs font-semibold text-slate-300" tabindex="0">i<span class="tip-text pointer-events-none absolute right-0 top-7 z-20 w-52 rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-left text-xs font-normal normal-case tracking-normal text-slate-200 opacity-0 shadow-xl transition">${item.desc}</span></span>
       </div>
-      <p class="kpi-value mt-auto pt-4 text-2xl font-semibold ${index === 1 ? 'text-emerald-300' : index === 2 ? 'text-indigo-200' : 'text-white'}">${item.value}</p>
+      <p class="kpi-value mt-auto pt-4 text-2xl font-semibold ${kpiValueClass(item, index)}">${item.value}</p>
       ${item.subvalue ? `<p class="kpi-subvalue mt-1 text-xs text-slate-400">${item.subvalue}</p>` : ''}
     </article>
   `).join('');
+}
+
+function kpiValueClass(item, index) {
+  if (item.tone === 'positive') return 'kpi-value-positive';
+  if (item.tone === 'negative') return 'kpi-value-negative';
+  if (index === 1) return 'text-emerald-300';
+  if (index === 2) return 'text-indigo-200';
+  return 'text-white';
+}
+
+function renderBudgetKpis(payload) {
+  const target = document.getElementById('kpiGrid');
+  const surplus = payload.surplus;
+  const projected = payload.projected;
+
+  target.innerHTML = `
+    <div class="budget-result-grid col-span-full grid gap-4 lg:grid-cols-2">
+      <article class="budget-result-card budget-result-card-${surplus.tone} rounded-lg border border-white/10 bg-white/[0.06] p-5">
+        <div class="flex min-w-0 items-start gap-4">
+          <span class="budget-result-icon budget-result-icon-${surplus.tone}" aria-hidden="true"></span>
+          <div class="min-w-0">
+            <p class="text-base font-semibold text-white">${surplus.label}</p>
+            <p class="budget-result-value budget-result-value-${surplus.tone} mt-3">${surplus.value}</p>
+            <span class="budget-result-badge budget-result-badge-${surplus.tone}">${surplus.badge}</span>
+          </div>
+        </div>
+        <div class="budget-result-split">
+          <div class="min-w-0">
+            <p class="text-xs text-slate-400">Income</p>
+            <p class="mt-1 text-xl font-semibold text-white">${surplus.income}</p>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-slate-400">Expenses</p>
+            <p class="mt-1 text-xl font-semibold text-white">${surplus.expenses}</p>
+          </div>
+        </div>
+      </article>
+      <article class="budget-result-card budget-result-card-${projected.tone} rounded-lg border border-white/10 bg-white/[0.06] p-5">
+        <div class="flex min-w-0 items-start gap-4">
+          <span class="budget-result-icon budget-result-icon-balance" aria-hidden="true"></span>
+          <div class="min-w-0">
+            <p class="text-base font-semibold text-white">${projected.label}</p>
+            <p class="budget-result-value budget-result-value-balance mt-3">${projected.value}</p>
+            <p class="mt-1 text-sm text-slate-300">${projected.subvalue}</p>
+            <p class="mt-3 text-sm text-slate-400">${projected.starting}</p>
+            <span class="budget-result-badge budget-result-badge-${projected.tone}">${projected.badge}</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  `;
 }
 
 function renderMortgageComparisonKpis(payload) {
