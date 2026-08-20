@@ -2,12 +2,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:api": "node --watch server/index.js",
+    "start:api": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node tests/runAll.js"
   },
   "dependencies": {
     "chart.js": "^4.4.9",
+    "express": "^5.2.1",
     "firebase": "^12.1.0"
   },
   "devDependencies": {

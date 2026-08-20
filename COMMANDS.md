@@ -19,11 +19,39 @@ Open:
 http://127.0.0.1:5173/
 ```
 
+Run the Express API in a second terminal:
+
+```powershell
+pnpm dev:api
+```
+
+Open:
+
+```text
+http://127.0.0.1:3000/api/health
+```
+
+During Vite development, frontend requests to `/api` are proxied to the Express server.
+
 ## Test
 
 ```powershell
 npm test
 ```
+
+## Run Express API
+
+```powershell
+pnpm start:api
+```
+
+By default the API listens on:
+
+```text
+http://127.0.0.1:3000
+```
+
+Use `PORT` and `HOST` to change the listen address. Use `API_HOST` and `API_PORT` for the Vite dev proxy target.
 
 ## Build For Firebase Hosting
 

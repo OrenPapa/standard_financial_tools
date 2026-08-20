@@ -12,6 +12,7 @@ This project is a standalone financial tools app with separate main and login pa
 - `src/ui/`: Reusable UI renderers for controls, KPI cards, charts, and tables.
 - `src/utils/`: Shared helpers such as currency formatting.
 - `src/styles/app.css`: Tailwind and app CSS entrypoint.
+- `server/`: Express API scaffold for backend routes.
 - `vite.config.js`: Multi-page build config.
 - `docs/`: Project notes, module documentation, formulas, and future feature planning.
 - `docs/architecture.md`: Module contract, UI reuse, and styling conventions.
@@ -70,6 +71,14 @@ Then open:
 ```text
 http://127.0.0.1:5173
 ```
+
+Run the Express API in a second terminal:
+
+```bash
+pnpm dev:api
+```
+
+The Vite dev server proxies `/api` requests to `http://127.0.0.1:3000`.
 
 For a production build:
 

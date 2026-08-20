@@ -61,3 +61,13 @@ Shared finance formulas should live under `src/utils/` when at least two modules
 Current shared helper:
 
 - `amortizedPayment(...)`: standard payment formula with optional future value, used by Loan and Mortgage.
+
+## Backend API
+
+The Express backend lives under `server/`.
+
+- `server/index.js`: process entrypoint and listener setup.
+- `server/app.js`: Express app factory, shared middleware, health route, API mount, production static serving, and error handling.
+- `server/routes/api.js`: API router placeholder for backend routes.
+
+Keep Firebase client code in place until the auth/data migration is ready. New backend routes should be added under `server/routes/` and mounted from `server/app.js`. The future Postgres connection should be isolated behind a small data-access module instead of being imported directly by route handlers.

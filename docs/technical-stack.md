@@ -8,8 +8,9 @@ The app is currently a Vite-built browser application.
 - Styling: Tailwind CSS via PostCSS plus local CSS variables in `src/styles/theme.css`
 - Charts: Chart.js from npm
 - Auth/analytics: Firebase from npm
+- Backend API scaffold: Express
 - JavaScript: vanilla ES modules
-- Local serving: Vite dev server
+- Local serving: Vite dev server plus Express API server
 - Formula tests: Node assertion scripts
 
 Run locally from the project root:
@@ -25,6 +26,14 @@ Then open:
 http://127.0.0.1:5173
 ```
 
+Run the backend API separately while developing:
+
+```bash
+pnpm dev:api
+```
+
+The Vite dev server proxies `/api` to the Express server on `http://127.0.0.1:3000`.
+
 ## Current Source Structure
 
 - `src/app.js`: app orchestration and module switching
@@ -34,6 +43,7 @@ http://127.0.0.1:5173
 - `src/utils/`: shared formatting and finance formulas
 - `src/styles/app.css`: Tailwind and app CSS entrypoint
 - `src/styles/theme.css`: CSS custom properties and page-level styles
+- `server/`: Express app, API routes, and production static serving
 - `vite.config.js`: multi-page Vite build config
 
 ## Styling System
@@ -97,4 +107,5 @@ If the app grows, likely upgrades are:
 - TypeScript for calculator contracts and safer module output
 - Tailwind config file for stronger design tokens
 - A test runner such as Vitest for formula regression tests
+- Postgres data-access modules behind Express routes
 - Historical data adapters for inflation/CPI and market assumptions

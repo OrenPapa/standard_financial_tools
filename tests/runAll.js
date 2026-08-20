@@ -11,3 +11,4 @@ import './mortgage.test.js';
 import './mortgageComparison.test.js';
 import './rentVsBuy.test.js';
 import './budget.test.js';
+import './server.test.js';
