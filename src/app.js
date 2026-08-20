@@ -139,7 +139,13 @@ function renderControlPanel() {
     renderMortgageComparisonBuilder({
       module,
       state,
+      advancedEnabled: advancedIsEnabled(module.id),
+      onAdvancedToggle(nextEnabled) {
+        appState.advancedEnabledByModule[module.id] = nextEnabled;
+        renderControlPanel();
+      },
       onChange: setMortgageComparisonValue,
+      onGlobalChange: setMortgageComparisonGlobalValue,
       onAddScenario: addMortgageComparisonScenario,
       onRemoveScenario: removeMortgageComparisonScenario,
       onReset: resetActiveModule,
@@ -395,6 +401,11 @@ function setMortgageComparisonValue(scenarioIndex, fieldId, value) {
     ...state.scenarios[scenarioIndex],
     [fieldId]: value
   };
+}
+
+function setMortgageComparisonGlobalValue(fieldId, value) {
+  const state = activeState();
+  state[fieldId] = value;
 }
 
 function addMortgageComparisonScenario() {

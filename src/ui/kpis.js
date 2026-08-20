@@ -86,6 +86,8 @@ function renderBudgetKpis(payload) {
 function renderMortgageComparisonKpis(payload) {
   const scenarios = payload.scenarios || [];
   const target = document.getElementById('kpiGrid');
+  const compareOverYears = Number(payload.compareOverYears || 0);
+  const insight = [payload.holdingInsight, payload.breakEven?.label].filter(Boolean).join(' ');
 
   target.innerHTML = `
     <details class="mortgage-comparison-results-section col-span-full rounded-lg border border-white/10 bg-slate-900/80 p-4 shadow-2xl shadow-slate-950/20" open>
@@ -98,15 +100,16 @@ function renderMortgageComparisonKpis(payload) {
       <div class="mortgage-comparison-scroll mt-4">
         <div class="mortgage-comparison-results">
         ${scenarios.map(scenario => {
-          const isLowestCost = Math.abs(scenario.totalCost - payload.bestTotalCost) < 0.005;
-          const isLowestPayment = Math.abs(scenario.paymentWithExtra - payload.lowestMonthlyPayment) < 0.005;
+          const primaryValue = compareOverYears ? scenario.cashOutflowAtHoldingPeriod : scenario.lifetimeInterest;
+          const isPrimaryWinner = Math.abs(primaryValue - payload.bestTotalCost) < 0.005;
+          const isLowestPayment = Math.abs(scenario.monthlyMortgagePayment - payload.lowestMonthlyMortgagePayment) < 0.005;
           const tags = [
-            isLowestCost ? '<span class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-md bg-emerald-400 px-2 py-1 text-center text-xs font-bold leading-none text-slate-950">Lowest total</span>' : '',
-            isLowestPayment ? '<span class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-md border border-white/10 px-2 py-1 text-center text-xs font-bold leading-none text-slate-200">Lowest monthly</span>' : ''
+            isPrimaryWinner ? `<span class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-md bg-emerald-400 px-2 py-1 text-center text-xs font-bold leading-none text-slate-950">${compareOverYears ? 'Lowest cash outflow' : 'Lowest lifetime interest'}</span>` : '',
+            isLowestPayment ? '<span class="inline-flex min-h-6 items-center justify-center whitespace-nowrap rounded-md border border-white/10 px-2 py-1 text-center text-xs font-bold leading-none text-slate-200">Lowest mortgage payment</span>' : ''
           ].filter(Boolean).join('');
 
           return `
-            <details class="mortgage-comparison-card shrink-0 rounded-lg border ${isLowestCost ? 'border-emerald-400/35 bg-emerald-500/[0.06]' : 'border-white/10 bg-white/[0.06]'} p-4" data-result-details open>
+            <details class="mortgage-comparison-card shrink-0 rounded-lg border ${isPrimaryWinner ? 'border-emerald-400/35 bg-emerald-500/[0.06]' : 'border-white/10 bg-white/[0.06]'} p-4" data-result-details open>
               <summary class="mortgage-comparison-summary mortgage-comparison-card-summary flex cursor-pointer items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
                   <div class="flex min-w-0 items-start justify-between gap-3">
@@ -122,16 +125,22 @@ function renderMortgageComparisonKpis(payload) {
                 ${comparisonMetric('Down payment', euros(scenario.downPayment))}
                 ${comparisonMetric('Loan amount', euros(scenario.loanAmount))}
                 ${comparisonMetric('Rate', `${Number(scenario.annualInterestRate).toFixed(2)}%`)}
-                ${comparisonMetric('Monthly payment', eurosPreciseValue(scenario.paymentWithExtra))}
-                ${comparisonMetric('Total interest', euros(scenario.totalInterest))}
-                ${comparisonMetric('Total cost', euros(scenario.totalCost))}
-                ${comparisonMetric('Payoff time', `${Number(scenario.payoffYears).toFixed(1)} yrs`)}
+                ${comparisonMetric('Monthly mortgage payment', eurosPreciseValue(scenario.monthlyMortgagePayment))}
+                ${payload.hasAdvancedCosts ? comparisonMetric('Initial monthly housing cost', eurosPreciseValue(scenario.initialMonthlyHousingCost)) : ''}
+                ${payload.hasAdvancedCosts ? comparisonMetric('Cash at closing', euros(scenario.cashAtClosing)) : ''}
+                ${compareOverYears ? comparisonMetric(`${compareOverYears}-year cash outflow`, euros(scenario.cashOutflowAtHoldingPeriod)) : ''}
+                ${compareOverYears ? comparisonMetric(`Remaining balance after ${compareOverYears} yrs`, euros(scenario.remainingBalanceAtHoldingPeriod)) : ''}
+                ${compareOverYears ? comparisonMetric(`Principal paid after ${compareOverYears} yrs`, euros(scenario.principalPaidAtHoldingPeriod)) : ''}
+                ${compareOverYears ? comparisonMetric(`Interest paid after ${compareOverYears} yrs`, euros(scenario.interestPaidAtHoldingPeriod)) : ''}
+                ${comparisonMetric('Lifetime interest', euros(scenario.lifetimeInterest))}
+                ${comparisonMetric('Mortgage payoff time', `${Number(scenario.payoffYears).toFixed(1)} yrs`)}
               </div>
             </details>
           `;
         }).join('')}
         </div>
       </div>
+      ${insight ? `<p class="mt-4 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm leading-6 text-slate-300">${escapeHtml(insight)}</p>` : ''}
     </details>
   `;
 

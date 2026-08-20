@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { calculationStateForAdvanced, hasAdvancedControls, visibleTableForAdvanced } from '../src/utils/advancedState.js';
 import { mortgageModule } from '../src/modules/mortgage.js';
+import { mortgageComparisonModule } from '../src/modules/mortgageComparison.js';
 import { investmentModule } from '../src/modules/investment.js';
 import { runTest } from './helpers.js';
 
 runTest('detects modules with advanced controls', () => {
   assert.equal(hasAdvancedControls(mortgageModule), true);
+  assert.equal(hasAdvancedControls(mortgageComparisonModule), true);
 });
 
 runTest('advanced numeric controls use inactive values when disabled', () => {
@@ -38,6 +40,26 @@ runTest('advanced values pass through when enabled', () => {
 
   assert.equal(calculationState, state);
   assert.equal(calculationState.propertyTaxRate, 1.2);
+});
+
+runTest('advanced scenario fields are neutralized when disabled', () => {
+  const state = {
+    ...mortgageComparisonModule.defaultState,
+    compareOverYears: 7,
+    scenarios: mortgageComparisonModule.defaultState.scenarios.map(scenario => ({
+      ...scenario,
+      propertyTaxRate: 1,
+      annualInsurance: 1200,
+      loanFees: 2500
+    }))
+  };
+  const calculationState = calculationStateForAdvanced(mortgageComparisonModule, state, false);
+
+  assert.equal(calculationState.compareOverYears, 0);
+  assert.equal(calculationState.scenarios[0].propertyTaxRate, 0);
+  assert.equal(calculationState.scenarios[0].annualInsurance, 0);
+  assert.equal(calculationState.scenarios[0].loanFees, 0);
+  assert.equal(calculationState.scenarios[0].homePrice, state.scenarios[0].homePrice);
 });
 
 runTest('advanced table columns are hidden when advanced settings are disabled', () => {

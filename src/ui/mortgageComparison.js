@@ -1,10 +1,19 @@
 import { clampNumberToMeta, formatNumberForInput, parseNumberInput, sanitizeNumberInputText } from './controls.js';
 import { classes } from './theme.js';
 
-function inputMarkup(field, value, scenarioIndex) {
+const advancedSettingsTooltip = 'By enabling advanced settings, include property tax, insurance, PMI, HOA or service charges, loan fees, discount points, and exit penalty data in the mortgage scenarios.';
+
+function inputMarkup(field, value, options = {}) {
+  const scenarioIndex = options.scenarioIndex;
+  const isGlobal = options.global === true;
+  const fieldAttrs = isGlobal
+    ? `data-global-field-id="${field.id}"`
+    : `data-scenario-index="${scenarioIndex}" data-field-id="${field.id}"`;
+  const inputId = isGlobal ? `mortgageComparison${field.id}` : `scenario${scenarioIndex}${field.id}`;
+
   if (field.type === 'text') {
     return `
-      <input id="scenario${scenarioIndex}${field.id}" data-scenario-index="${scenarioIndex}" data-field-id="${field.id}" type="text" value="${escapeHtml(value)}" class="${classes.inputBase} px-3 py-2">
+      <input id="${inputId}" ${fieldAttrs} type="text" value="${escapeHtml(value)}" class="${classes.inputBase} px-3 py-2">
     `;
   }
 
@@ -19,13 +28,48 @@ function inputMarkup(field, value, scenarioIndex) {
   return `
     <span class="input-affix-shell relative block">
       ${prefix ? `<span class="input-affix input-affix-prefix">${prefix}</span>` : ''}
-      <input id="scenario${scenarioIndex}${field.id}" data-scenario-index="${scenarioIndex}" data-field-id="${field.id}" data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(field, value)}" class="${classes.inputBase} numeric-input ${paddingClasses}">
+      <input id="${inputId}" ${fieldAttrs} data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(field, value)}" class="${classes.inputBase} numeric-input ${paddingClasses}">
       ${suffix ? `<span class="input-affix input-affix-suffix">${suffix}</span>` : ''}
     </span>
   `;
 }
 
-function renderScenarioForm({ scenario, fields, index, canRemove }) {
+function renderField(field, value, inputOptions = {}) {
+  const inputId = `scenario${inputOptions.scenarioIndex}${field.id}`;
+  const message = inputOptions.validation?.fields?.[field.id];
+  const warning = inputOptions.validation?.warnings?.[field.id];
+
+  return `
+    <label class="block min-w-0" for="${inputId}">
+      <div class="mb-1.5 flex items-center justify-between gap-3">
+        <span class="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-200">
+          <span class="min-w-0">${field.label}</span>
+          <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${field.desc}</span></span>
+        </span>
+      </div>
+      ${inputMarkup(field, value, inputOptions)}
+      ${message ? `<p class="mt-1 text-xs leading-5 text-rose-300">${escapeHtml(message)}</p>` : ''}
+      ${warning ? `<p class="mt-1 text-xs leading-5 text-amber-200">${escapeHtml(warning)}</p>` : ''}
+    </label>
+  `;
+}
+
+function renderTopAdvancedField(field, value, validation = {}) {
+  const message = validation.global?.[field.id];
+
+  return `
+    <label class="flex min-w-[12rem] flex-wrap items-center gap-2" for="mortgageComparison${field.id}">
+      <span class="flex shrink-0 items-center gap-2 text-sm font-semibold text-slate-200">
+        <span>${field.label}</span>
+        <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${field.desc}</span></span>
+      </span>
+      <span class="w-28">${inputMarkup(field, value, { global: true })}</span>
+      ${message ? `<p class="basis-full text-xs leading-5 text-rose-300">${escapeHtml(message)}</p>` : ''}
+    </label>
+  `;
+}
+
+function renderScenarioForm({ scenario, basicFields, advancedFields, index, canRemove, advancedEnabled }) {
   const removeTooltip = 'You cannot remove this scenario because there have to be at least 2 scenarios.';
 
   return `
@@ -42,26 +86,32 @@ function renderScenarioForm({ scenario, fields, index, canRemove }) {
       </summary>
       <div class="mt-3">
         <div class="grid gap-2.5">
-          ${fields.map(field => `
-            <label class="block min-w-0" for="scenario${index}${field.id}">
-              <div class="mb-1.5 flex items-center justify-between gap-3">
-                <span class="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-200">
-                  <span class="min-w-0">${field.label}</span>
-                  <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${field.desc}</span></span>
-                </span>
-              </div>
-              ${inputMarkup(field, scenario[field.id], index)}
-            </label>
-          `).join('')}
+          ${basicFields.map(field => renderField(field, scenario[field.id], { scenarioIndex: index, validation: scenario._validation })).join('')}
         </div>
+        ${advancedEnabled ? `
+          <details class="mt-4 border-t border-white/10 pt-3" data-scenario-advanced-details open>
+            <summary class="mortgage-comparison-summary flex cursor-pointer items-center justify-between gap-3">
+              <span class="flex items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Advanced settings</span>
+              </span>
+              <span class="mortgage-comparison-caret" aria-hidden="true"></span>
+            </summary>
+            <div class="mt-3 grid gap-2.5">
+              ${advancedFields.map(field => renderField(field, scenario[field.id], { scenarioIndex: index, validation: scenario._validation })).join('')}
+            </div>
+          </details>
+        ` : ''}
       </div>
     </details>
   `;
 }
 
-export function renderMortgageComparisonBuilder({ module, state, onChange, onAddScenario, onRemoveScenario, onReset, onCalculate }) {
+export function renderMortgageComparisonBuilder({ module, state, advancedEnabled, onAdvancedToggle, onChange, onGlobalChange, onAddScenario, onRemoveScenario, onReset, onCalculate }) {
   const container = document.getElementById('comparisonBuilder');
   const scenarios = Array.isArray(state.scenarios) ? state.scenarios : [];
+  const basicScenarioFields = module.scenarioFields.filter(field => !field.advanced);
+  const advancedScenarioFields = module.scenarioFields.filter(field => field.advanced);
+  const topAdvancedFields = module.advancedControls || [];
 
   container.classList.remove('hidden');
   container.innerHTML = `
@@ -76,17 +126,35 @@ export function renderMortgageComparisonBuilder({ module, state, onChange, onAdd
         </div>
       </summary>
       <div class="mt-4">
-        <div class="mb-4 flex flex-wrap justify-end gap-2">
-          <button id="resetMortgageComparisonBtn" type="button" class="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">Reset</button>
-          <button id="addMortgageScenarioBtn" type="button" class="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10" ${scenarios.length >= 8 ? 'disabled' : ''}>Add scenario</button>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          ${advancedScenarioFields.length ? `
+            <div class="advanced-settings flex min-h-10 flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2" aria-label="Advanced mortgage comparison settings">
+              <span class="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-200">
+                <span>Advanced settings <span class="text-xs font-normal text-slate-400">(optional)</span></span>
+                <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${advancedSettingsTooltip}</span></span>
+              </span>
+              <button id="mortgageComparisonAdvancedToggle" data-advanced-toggle type="button" role="switch" aria-checked="${advancedEnabled}" aria-expanded="${advancedEnabled}" aria-label="Toggle advanced settings" class="inline-flex shrink-0 items-center p-0">
+                <span class="relative h-5 w-9 rounded-full transition ${advancedEnabled ? 'bg-emerald-500' : 'bg-slate-700'}">
+                  <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${advancedEnabled ? 'left-[1.125rem]' : 'left-0.5'}"></span>
+                </span>
+              </button>
+              ${advancedEnabled ? topAdvancedFields.map(field => renderTopAdvancedField(field, state[field.id], state._validation)).join('') : ''}
+            </div>
+          ` : ''}
+          <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <button id="resetMortgageComparisonBtn" type="button" class="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">Reset</button>
+            <button id="addMortgageScenarioBtn" type="button" class="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10" ${scenarios.length >= 8 ? 'disabled' : ''}>Add scenario</button>
+          </div>
         </div>
         <div class="mortgage-comparison-scroll">
           <div class="mortgage-comparison-rail">
           ${scenarios.map((scenario, index) => renderScenarioForm({
             scenario,
-            fields: module.scenarioFields,
+            basicFields: basicScenarioFields,
+            advancedFields: advancedScenarioFields,
             index,
-            canRemove: scenarios.length > 2
+            canRemove: scenarios.length > 2,
+            advancedEnabled
           })).join('')}
           </div>
         </div>
@@ -114,12 +182,39 @@ export function renderMortgageComparisonBuilder({ module, state, onChange, onAdd
     });
   });
 
+  container.querySelectorAll('details[data-scenario-advanced-details] > summary').forEach(summary => {
+    summary.addEventListener('click', event => {
+      event.preventDefault();
+      const nextOpen = !summary.parentElement.open;
+      container.querySelectorAll('details[data-scenario-advanced-details]').forEach(details => {
+        details.open = nextOpen;
+      });
+    });
+
+    summary.addEventListener('keydown', event => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      const nextOpen = !summary.parentElement.open;
+      container.querySelectorAll('details[data-scenario-advanced-details]').forEach(details => {
+        details.open = nextOpen;
+      });
+    });
+  });
+
   desktopScenarioQuery.addEventListener?.('change', syncScenarioDetails);
   syncScenarioDetails();
 
+  container.querySelectorAll('button[data-advanced-toggle]').forEach(button => {
+    button.addEventListener('click', () => {
+      commitPendingInputs(container, module, onChange, onGlobalChange);
+      onAdvancedToggle?.(!advancedEnabled);
+    });
+  });
+
   container.querySelectorAll('input').forEach(input => {
     input.addEventListener('input', event => {
-      const field = module.scenarioFields.find(item => item.id === event.target.dataset.fieldId);
+      const fieldId = event.target.dataset.fieldId || event.target.dataset.globalFieldId;
+      const field = [...module.scenarioFields, ...(module.advancedControls || [])].find(item => item.id === fieldId);
       if (!field || field.type === 'text') {
         onChange(Number(event.target.dataset.scenarioIndex), event.target.dataset.fieldId, event.target.value);
         return;
@@ -133,11 +228,11 @@ export function renderMortgageComparisonBuilder({ module, state, onChange, onAdd
       }
     });
 
-    input.addEventListener('blur', event => commitScenarioInput(event.target, module, onChange));
-    input.addEventListener('change', event => commitScenarioInput(event.target, module, onChange));
+    input.addEventListener('blur', event => commitInput(event.target, module, onChange, onGlobalChange));
+    input.addEventListener('change', event => commitInput(event.target, module, onChange, onGlobalChange));
     input.addEventListener('keydown', event => {
       if (event.key !== 'Enter') return;
-      commitScenarioInput(event.currentTarget, module, onChange);
+      commitInput(event.currentTarget, module, onChange, onGlobalChange);
       event.currentTarget.blur();
     });
   });
@@ -156,7 +251,7 @@ export function renderMortgageComparisonBuilder({ module, state, onChange, onAdd
   document.getElementById('addMortgageScenarioBtn')?.addEventListener('click', onAddScenario);
   document.getElementById('resetMortgageComparisonBtn')?.addEventListener('click', onReset);
   document.getElementById('calculateMortgageComparisonBtn')?.addEventListener('click', () => {
-    container.querySelectorAll('input').forEach(input => commitScenarioInput(input, module, onChange));
+    commitPendingInputs(container, module, onChange, onGlobalChange);
     onCalculate();
   });
 }
@@ -184,6 +279,33 @@ function commitScenarioInput(input, module, onChange) {
   const value = clampNumberToMeta(field, parsedValue);
   input.value = formatNumberForInput(field, value);
   onChange(scenarioIndex, fieldId, value);
+}
+
+function commitGlobalInput(input, module, onGlobalChange) {
+  const fieldId = input.dataset.globalFieldId;
+  const field = module.advancedControls?.find(item => item.id === fieldId);
+  if (!field) return;
+
+  const parsedValue = parseNumberInput(input.value);
+  if (!Number.isFinite(parsedValue)) return;
+  const value = clampNumberToMeta(field, parsedValue);
+  input.value = formatNumberForInput(field, value);
+  onGlobalChange?.(fieldId, value);
+}
+
+function commitPendingInputs(container, module, onChange, onGlobalChange) {
+  container.querySelectorAll('input').forEach(input => {
+    commitInput(input, module, onChange, onGlobalChange);
+  });
+}
+
+function commitInput(input, module, onChange, onGlobalChange) {
+  if (input.dataset.globalFieldId) {
+    commitGlobalInput(input, module, onGlobalChange);
+    return;
+  }
+
+  commitScenarioInput(input, module, onChange);
 }
 
 function escapeHtml(value) {

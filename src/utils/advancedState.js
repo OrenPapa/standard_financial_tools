@@ -1,5 +1,9 @@
 export function hasAdvancedControls(module) {
-  return module.controls.some(control => control.advanced);
+  return Boolean(
+    module.controls?.some(control => control.advanced)
+    || module.scenarioFields?.some(control => control.advanced)
+    || module.advancedControls?.some(control => control.advanced)
+  );
 }
 
 export function calculationStateForAdvanced(module, state, advancedEnabled) {
@@ -7,12 +11,23 @@ export function calculationStateForAdvanced(module, state, advancedEnabled) {
     return state;
   }
 
-  return module.controls.reduce((nextState, meta) => {
+  const nextState = [...(module.controls || []), ...(module.advancedControls || [])].reduce((next, meta) => {
     if (meta.advanced) {
-      nextState[meta.id] = inactiveAdvancedValue(meta);
+      next[meta.id] = inactiveAdvancedValue(meta);
     }
-    return nextState;
+    return next;
   }, { ...state });
+
+  if (Array.isArray(nextState.scenarios) && module.scenarioFields?.some(meta => meta.advanced)) {
+    nextState.scenarios = nextState.scenarios.map(scenario => module.scenarioFields.reduce((nextScenario, meta) => {
+      if (meta.advanced) {
+        nextScenario[meta.id] = inactiveAdvancedValue(meta);
+      }
+      return nextScenario;
+    }, { ...scenario }));
+  }
+
+  return nextState;
 }
 
 export function visibleTableForAdvanced(module, table, advancedEnabled) {
