@@ -2,8 +2,13 @@ import { Router } from 'express';
 import type { RequestHandler } from 'express';
 
 import { getDatabaseStatus, isDatabaseConfigured } from '../db.js';
+import { authRouter } from './auth.js';
+import { calculationsRouter } from './calculations.js';
 
 export const apiRouter = Router();
+
+apiRouter.use('/auth', authRouter);
+apiRouter.use('/calculations', calculationsRouter);
 
 apiRouter.get('/health', ((_req, res) => {
   res.json({

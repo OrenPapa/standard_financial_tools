@@ -69,6 +69,14 @@ http://127.0.0.1:3000/api/db/health
 
 The backend reads Postgres settings from `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, and `DB_NAME`.
 
+Apply database migrations:
+
+```powershell
+pnpm db:migrate
+```
+
+For local email verification, register in the app and then open the verification link printed in the API terminal. A real email provider can replace that console sender later.
+
 ## Build For Firebase Hosting
 
 ```powershell

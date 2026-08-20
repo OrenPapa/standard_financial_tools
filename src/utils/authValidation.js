@@ -1,6 +1,6 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function validateAuthFieldErrors({ email, password, confirmPassword = '', mode = 'login' }) {
+export function validateAuthFieldErrors({ username = '', email, password, confirmPassword = '', mode = 'login' }) {
   const errors = {};
 
   if (!EMAIL_PATTERN.test(String(email || '').trim())) {
@@ -13,6 +13,11 @@ export function validateAuthFieldErrors({ email, password, confirmPassword = '',
 
   if (mode !== 'register') return errors;
 
+  const normalizedUsername = String(username || '').trim();
+  if (normalizedUsername.length < 3 || normalizedUsername.length > 40) {
+    errors.username = 'Username must be between 3 and 40 characters.';
+  }
+
   if (password !== confirmPassword) {
     errors.confirmPassword = 'Passwords do not match.';
   }
@@ -22,5 +27,5 @@ export function validateAuthFieldErrors({ email, password, confirmPassword = '',
 
 export function validateAuthFields(input) {
   const errors = validateAuthFieldErrors(input);
-  return errors.email || errors.password || errors.confirmPassword || '';
+  return errors.username || errors.email || errors.password || errors.confirmPassword || '';
 }

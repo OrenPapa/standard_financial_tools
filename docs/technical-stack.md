@@ -7,7 +7,8 @@ The app is currently a Vite-built browser application.
 - HTML shells: `index.html` and `login.html`
 - Styling: Tailwind CSS via PostCSS plus local CSS variables in `src/styles/theme.css`
 - Charts: Chart.js from npm
-- Auth/analytics: Firebase from npm
+- Auth: Express, Postgres, JWT access cookies, rotating refresh cookies
+- Analytics: Firebase remains available until removed
 - Backend API scaffold: Express with TypeScript
 - Database driver: `pg` for Postgres
 - JavaScript: vanilla ES modules
@@ -34,6 +35,12 @@ pnpm dev:api
 ```
 
 The Vite dev server proxies `/api` to the Express server on `http://127.0.0.1:3000`.
+
+Apply database migrations before using auth or saved calculation routes:
+
+```bash
+pnpm db:migrate
+```
 
 ## Current Source Structure
 

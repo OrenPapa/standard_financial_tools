@@ -70,6 +70,11 @@ The Express backend lives under `server/`.
 - `server/app.ts`: Express app factory, shared middleware, health route, API mount, production static serving, and error handling.
 - `server/db.ts`: typed Postgres pool and connection health helper.
 - `server/config/env.ts`: backend environment loading.
+- `server/auth/`: password hashing, token cookies, refresh sessions, email verification, and auth middleware.
+- `server/calculations/`: saved-calculation data access.
+- `server/migrations/`: Postgres schema migrations.
 - `server/routes/api.ts`: API router placeholder for backend routes.
 
-Keep Firebase client code in place until the auth/data migration is ready. New backend routes should be added under `server/routes/` and mounted from `server/app.ts`. Postgres access should stay behind small data-access modules instead of being imported directly by every route handler.
+Firebase client code is no longer used for login/register, but the package can stay until the old Firebase module is removed completely. New backend routes should be added under `server/routes/` and mounted from `server/app.ts`. Postgres access should stay behind small data-access modules instead of being imported directly by every route handler.
+
+Authentication uses short-lived access cookies and rotating refresh cookies. Both are HttpOnly. Email verification tokens and refresh token secrets are stored only as hashes.

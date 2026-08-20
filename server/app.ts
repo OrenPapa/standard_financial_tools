@@ -1,5 +1,6 @@
 import express from 'express';
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import cookieParser from 'cookie-parser';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +19,7 @@ export function createApp(options: CreateAppOptions = {}) {
   const staticDir = options.staticDir || resolve(projectRoot, 'dist');
 
   app.disable('x-powered-by');
+  app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/health', ((_req, res) => {

@@ -51,3 +51,10 @@ await runServerTest('server returns JSON 404 for missing API routes', async () =
   assert.equal(response.status, 404);
   assert.equal(response.body.error, 'Not found');
 });
+
+await runServerTest('server protects saved calculation routes', async () => {
+  const response = await request('/api/calculations');
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body.code, 'auth_required');
+});

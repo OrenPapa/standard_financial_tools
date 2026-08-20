@@ -37,6 +37,11 @@
         </div>
 
         <form id="authForm" class="auth-page-form" autocomplete="on" novalidate>
+          <label class="auth-field hidden">
+            <span>Username</span>
+            <input id="authUsername" class="auth-input auth-page-input" name="username" type="text" autocomplete="username" placeholder="Choose a username" minlength="3" maxlength="40" aria-describedby="authUsernameError">
+            <span id="authUsernameError" class="auth-field-error" aria-live="polite"></span>
+          </label>
           <label class="auth-field">
             <span>Email</span>
             <input id="authEmail" class="auth-input auth-page-input" name="email" type="email" autocomplete="email" placeholder="name@example.com" required aria-describedby="authEmailError">

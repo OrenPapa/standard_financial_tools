@@ -1,35 +1,28 @@
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut
-} from 'firebase/auth';
-
-import { auth } from '../firebase.js';
+import { getCurrentUser, loginUser, logoutUser, registerUser, startSessionRefresh } from '../api/auth.js';
 import { validateAuthFieldErrors } from '../utils/authValidation.js';
 
 const AUTH_ERRORS = {
-  'auth/email-already-in-use': 'That email already has an account.',
-  'auth/invalid-email': 'Enter a valid email address.',
-  'auth/invalid-credential': 'Email or password is incorrect.',
-  'auth/missing-password': 'Enter a password.',
-  'auth/user-not-found': 'No account exists for this email.',
-  'auth/wrong-password': 'Email or password is incorrect.',
-  'auth/weak-password': 'Use at least 8 characters.',
-  'auth/network-request-failed': 'Network error. Try again.',
-  'auth/too-many-requests': 'Too many attempts. Try again later.'
+  email_exists: 'That email already has an account.',
+  invalid_email: 'Enter a valid email address.',
+  invalid_credentials: 'Email or password is incorrect.',
+  weak_password: 'Use at least 8 characters.',
+  invalid_username: 'Username must be between 3 and 40 characters.',
+  username_exists: 'That username is already taken.',
+  email_unverified: 'Please verify your email before logging in.',
+  auth_required: 'Login again to continue.',
+  token_expired: 'Session expired. Login again to continue.'
 };
 
 const AUTH_ERROR_TARGETS = {
-  'auth/email-already-in-use': 'email',
-  'auth/invalid-email': 'email',
-  'auth/user-not-found': 'email',
-  'auth/invalid-credential': 'password',
-  'auth/missing-password': 'password',
-  'auth/wrong-password': 'password',
-  'auth/weak-password': 'password',
-  'auth/network-request-failed': 'form',
-  'auth/too-many-requests': 'form'
+  email_exists: 'email',
+  invalid_email: 'email',
+  invalid_credentials: 'password',
+  weak_password: 'password',
+  invalid_username: 'username',
+  username_exists: 'username',
+  email_unverified: 'form',
+  auth_required: 'form',
+  token_expired: 'form'
 };
 
 export function initializeHeaderAuth() {
@@ -80,6 +73,7 @@ export function initializeHeaderAuth() {
   const signOutButton = document.getElementById('authSignOutBtn');
   const signOutLabel = document.getElementById('authSignOutLabel');
   const message = document.getElementById('authMessage');
+  let stopSessionRefresh = null;
 
   trigger.addEventListener('click', event => {
     event.stopPropagation();
@@ -88,14 +82,19 @@ export function initializeHeaderAuth() {
 
   signOutButton.addEventListener('click', async () => {
     setSignOutLoading(true, signOutButton, signOutLabel);
-    const success = await authenticate(() => signOut(auth), {
+    const success = await authenticate(() => logoutUser(), {
       messageElement: message
     });
     setSignOutLoading(false, signOutButton, signOutLabel);
-    if (success) setProfileMenuOpen(false, trigger, menu);
+    if (success) {
+      updateHeaderUser(null);
+      setProfileMenuOpen(false, trigger, menu);
+    }
   });
 
-  onAuthStateChanged(auth, user => {
+  getCurrentUser().then(updateHeaderUser);
+
+  function updateHeaderUser(user) {
     const signedIn = Boolean(user);
     const label = user?.email || 'Guest';
     const avatarText = signedIn ? label.trim().charAt(0).toUpperCase() : 'G';
@@ -107,7 +106,16 @@ export function initializeHeaderAuth() {
     guestActions.classList.toggle('hidden', signedIn);
     userActions.classList.toggle('hidden', !signedIn);
     message.textContent = signedIn ? '' : message.textContent;
-  });
+
+    if (signedIn && !stopSessionRefresh) {
+      stopSessionRefresh = startSessionRefresh();
+    }
+
+    if (!signedIn && stopSessionRefresh) {
+      stopSessionRefresh();
+      stopSessionRefresh = null;
+    }
+  }
 
   document.addEventListener('click', event => {
     if (container.contains(event.target)) return;
@@ -120,9 +128,11 @@ export function initializeAuthPage() {
   if (!form) return;
 
   const emailInput = document.getElementById('authEmail');
+  const usernameInput = document.getElementById('authUsername');
   const passwordInput = document.getElementById('authPassword');
   const confirmPasswordInput = document.getElementById('authConfirmPassword');
   const emailError = document.getElementById('authEmailError');
+  const usernameError = document.getElementById('authUsernameError');
   const passwordError = document.getElementById('authPasswordError');
   const confirmPasswordError = document.getElementById('authConfirmPasswordError');
   const loginTab = document.getElementById('authLoginTab');
@@ -134,8 +144,8 @@ export function initializeAuthPage() {
   const message = document.getElementById('authMessage');
   let mode = 'login';
   const valuesByMode = {
-    login: { email: '', password: '', confirmPassword: '' },
-    register: { email: '', password: '', confirmPassword: '' }
+    login: { username: '', email: '', password: '', confirmPassword: '' },
+    register: { username: '', email: '', password: '', confirmPassword: '' }
   };
 
   function setMode(nextMode) {
@@ -146,6 +156,8 @@ export function initializeAuthPage() {
     registerTab.setAttribute('aria-selected', String(isRegister));
     loginTab.classList.toggle('is-active', !isRegister);
     registerTab.classList.toggle('is-active', isRegister);
+    usernameInput.closest('.auth-field').classList.toggle('hidden', !isRegister);
+    usernameInput.required = isRegister;
     confirmPasswordInput.closest('.auth-field').classList.toggle('hidden', !isRegister);
     confirmPasswordInput.required = isRegister;
     passwordInput.autocomplete = isRegister ? 'new-password' : 'current-password';
@@ -159,7 +171,7 @@ export function initializeAuthPage() {
 
   loginTab.addEventListener('click', () => setMode('login'));
   registerTab.addEventListener('click', () => setMode('register'));
-  [emailInput, passwordInput, confirmPasswordInput].forEach(input => {
+  [usernameInput, emailInput, passwordInput, confirmPasswordInput].forEach(input => {
     input.addEventListener('input', () => {
       saveCurrentValues();
       clearFieldError(input);
@@ -174,10 +186,17 @@ export function initializeAuthPage() {
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    const username = usernameInput.value.trim();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     saveCurrentValues();
-    const validationErrors = validateAuthFieldErrors({ email, password, confirmPassword: confirmPasswordInput.value, mode });
+    const validationErrors = validateAuthFieldErrors({
+      username,
+      email,
+      password,
+      confirmPassword: confirmPasswordInput.value,
+      mode
+    });
 
     if (Object.keys(validationErrors).length) {
       setFieldErrors(validationErrors);
@@ -186,12 +205,16 @@ export function initializeAuthPage() {
 
     setFieldErrors({});
     const action = mode === 'register'
-      ? () => createUserWithEmailAndPassword(auth, email, password)
-      : () => signInWithEmailAndPassword(auth, email, password);
+      ? () => registerUser({ username, email, password })
+      : () => loginUser({ email, password });
 
     try {
       message.textContent = '';
       await action();
+      if (mode === 'register') {
+        message.textContent = 'Account created. Check the API console for the verification link.';
+        return;
+      }
       showAuthRedirectLoader(signedOutPanel, redirectLoader);
       window.location.replace('./index.html');
     } catch (error) {
@@ -202,7 +225,7 @@ export function initializeAuthPage() {
     }
   });
 
-  onAuthStateChanged(auth, user => {
+  getCurrentUser().then(user => {
     if (!user) return;
     showAuthRedirectLoader(signedOutPanel, redirectLoader);
     window.location.replace('./index.html');
@@ -212,6 +235,7 @@ export function initializeAuthPage() {
 
   function saveCurrentValues() {
     valuesByMode[mode] = {
+      username: usernameInput.value,
       email: emailInput.value,
       password: passwordInput.value,
       confirmPassword: confirmPasswordInput.value
@@ -220,12 +244,14 @@ export function initializeAuthPage() {
 
   function restoreCurrentValues() {
     const currentValues = valuesByMode[mode];
+    usernameInput.value = currentValues.username;
     emailInput.value = currentValues.email;
     passwordInput.value = currentValues.password;
     confirmPasswordInput.value = currentValues.confirmPassword;
   }
 
   function setFieldErrors(errors) {
+    setInputError(usernameInput, usernameError, errors.username);
     setInputError(emailInput, emailError, errors.email);
     setInputError(passwordInput, passwordError, errors.password);
     setInputError(confirmPasswordInput, confirmPasswordError, errors.confirmPassword);

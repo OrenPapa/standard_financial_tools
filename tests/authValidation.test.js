@@ -20,6 +20,7 @@ runTest('auth validation requires 8 password characters before login', () => {
 
 runTest('auth validation checks register password confirmation', () => {
   assert.equal(validateAuthFields({
+    username: 'user',
     email: 'user@example.com',
     password: 'Password1',
     confirmPassword: 'Password2',
@@ -35,6 +36,7 @@ runTest('auth validation accepts valid login and register fields', () => {
   }), '');
 
   assert.equal(validateAuthFields({
+    username: 'user',
     email: 'user@example.com',
     password: 'password',
     confirmPassword: 'password',
@@ -49,6 +51,7 @@ runTest('auth validation returns field-specific errors', () => {
     confirmPassword: 'different',
     mode: 'register'
   }), {
+    username: 'Username must be between 3 and 40 characters.',
     email: 'Enter a valid email address.',
     password: 'Password must be at least 8 characters.',
     confirmPassword: 'Passwords do not match.'
