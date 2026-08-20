@@ -16,7 +16,12 @@ const scenarioFields = [
   { id: 'monthlyHOA', label: 'Monthly HOA / service', min: 0, max: 3000, step: 25, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Monthly association, building service, or maintenance charge.' },
   { id: 'loanFees', label: 'Loan fees', min: 0, max: 100000, step: 500, prefix: 'EUR ', control: 'number', advanced: true, desc: 'Origination or bank package fees paid upfront, separate from closing costs.' },
   { id: 'discountPointsRate', label: 'Discount points', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Upfront rate buy-down cost as a percentage of the loan amount. This does not change the entered interest rate.' },
-  { id: 'prepaymentPenaltyRate', label: 'Exit penalty', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Penalty as a percentage of remaining mortgage balance at the comparison period.' }
+  { id: 'prepaymentPenaltyRate', label: 'Exit penalty', min: 0, max: 10, step: 0.1, suffix: '%', advanced: true, desc: 'Penalty as a percentage of remaining mortgage balance at the comparison period.' },
+  { id: 'lumpSumPrepaymentAmount', label: 'Lump-sum prepayment amount', min: 0, max: 1000000, step: 1000, prefix: 'EUR ', control: 'number', advanced: true, desc: 'One-time principal prepayment. It is separate from the extra monthly payment and is capped at the remaining balance.' },
+  { id: 'prepaymentAfterYears', label: 'Prepayment after', min: 0, max: 40, step: 1, suffix: 'yrs', advanced: true, inactiveValue: 5, desc: 'How many years after the mortgage starts the lump-sum prepayment is made.' },
+  { id: 'prepaymentFeeType', label: 'Prepayment fee type', type: 'select', advanced: true, options: [['percent', '%'], ['fixed', 'Fixed']], desc: 'Choose whether the prepayment fee is a percentage of the lump sum or a fixed amount.' },
+  { id: 'prepaymentFeeRate', label: 'Prepayment fee', min: 0, max: 100000, step: 0.1, suffix: '%', advanced: true, desc: 'Fee charged as a percentage of the lump-sum prepayment amount, or as a fixed amount when Fixed is selected.' },
+  { id: 'afterPrepayment', label: 'After prepayment', type: 'select', advanced: true, options: [['reducePayment', 'Reduce monthly payment'], ['reduceTerm', 'Reduce mortgage term']], desc: 'Choose whether the lump-sum prepayment lowers future scheduled payments or shortens the mortgage.' }
 ];
 
 const advancedControls = [
@@ -30,7 +35,12 @@ const defaultScenarioValues = {
   monthlyHOA: 0,
   loanFees: 0,
   discountPointsRate: 0,
-  prepaymentPenaltyRate: 0
+  prepaymentPenaltyRate: 0,
+  lumpSumPrepaymentAmount: 0,
+  prepaymentAfterYears: 5,
+  prepaymentFeeType: 'percent',
+  prepaymentFeeRate: 0,
+  afterPrepayment: 'reducePayment'
 };
 
 const defaultState = {
@@ -72,6 +82,8 @@ const componentColors = {
   ownershipCosts: '#14b8a6',
   pmi: '#f43f5e',
   principalPaid: '#16a34a',
+  lumpSumPrincipal: '#22c55e',
+  prepaymentFee: '#fb7185',
   exitPenalty: '#64748b'
 };
 
@@ -113,6 +125,11 @@ function sanitizeScenario(scenario, index) {
   next.loanFees = nonNegativeNumber(next.loanFees, base.loanFees);
   next.discountPointsRate = nonNegativeNumber(next.discountPointsRate, base.discountPointsRate);
   next.prepaymentPenaltyRate = nonNegativeNumber(next.prepaymentPenaltyRate, base.prepaymentPenaltyRate);
+  next.lumpSumPrepaymentAmount = nonNegativeNumber(next.lumpSumPrepaymentAmount, base.lumpSumPrepaymentAmount);
+  next.prepaymentAfterYears = Math.min(40, Math.max(0, Math.round(nonNegativeNumber(next.prepaymentAfterYears, base.prepaymentAfterYears))));
+  next.prepaymentFeeType = ['percent', 'fixed'].includes(next.prepaymentFeeType) ? next.prepaymentFeeType : base.prepaymentFeeType;
+  next.prepaymentFeeRate = nonNegativeNumber(next.prepaymentFeeRate, base.prepaymentFeeRate);
+  next.afterPrepayment = ['reducePayment', 'reduceTerm'].includes(next.afterPrepayment) ? next.afterPrepayment : base.afterPrepayment;
   return next;
 }
 
@@ -167,6 +184,10 @@ function calculateScenario(scenario, index, options = {}) {
     periodicRate: monthlyInterestRate,
     periods: termMonths
   });
+  const requestedLumpSumPrepayment = input.lumpSumPrepaymentAmount;
+  const prepaymentMonth = requestedLumpSumPrepayment > 0
+    ? Math.max(1, Math.round(input.prepaymentAfterYears * 12))
+    : 0;
   const annualPropertyTax = input.homePrice * input.propertyTaxRate / 100;
   const monthlyPropertyTax = annualPropertyTax / 12;
   const monthlyInsurance = input.annualInsurance / 12;
@@ -183,17 +204,24 @@ function calculateScenario(scenario, index, options = {}) {
   let totalPrincipalPaid = 0;
   let totalInterestPaid = 0;
   let totalMortgagePayments = 0;
+  let totalLumpSumPrincipalPaid = 0;
+  let totalPrepaymentFeePaid = 0;
   let totalPropertyTaxPaid = 0;
   let totalInsurancePaid = 0;
   let totalPmiPaid = 0;
   let totalHoaPaid = 0;
+  let activeMonthlyMortgagePayment = monthlyMortgagePayment;
+  let newMonthlyMortgagePayment = null;
+  let prepaymentAppliedMonth = 0;
+  let remainingBalanceAfterPrepayment = 0;
   let firstMonth = null;
 
   for (let month = 1; month <= termMonths; month++) {
     const mortgageActive = balance > 0.005;
+    const scheduledMortgagePayment = mortgageActive ? activeMonthlyMortgagePayment : 0;
     const interest = mortgageActive ? balance * monthlyInterestRate : 0;
     const scheduledPrincipal = mortgageActive
-      ? Math.min(balance, Math.max(0, monthlyMortgagePayment - interest))
+      ? Math.min(balance, Math.max(0, scheduledMortgagePayment - interest))
       : 0;
     const extraPrincipal = mortgageActive
       ? Math.min(Math.max(0, balance - scheduledPrincipal), input.extraMonthlyPayment)
@@ -204,14 +232,43 @@ function calculateScenario(scenario, index, options = {}) {
     const monthlyHousingOutflow = mortgagePayment + monthlyPropertyTax + monthlyInsurance + pmi + input.monthlyHOA;
 
     balance = Math.max(0, balance - principalPayment);
+
+    let lumpSumPrincipal = 0;
+    let prepaymentFeeCost = 0;
+
+    if (requestedLumpSumPrepayment > 0 && month === prepaymentMonth && balance > 0.005) {
+      lumpSumPrincipal = Math.min(balance, requestedLumpSumPrepayment);
+      prepaymentFeeCost = input.prepaymentFeeType === 'fixed'
+        ? input.prepaymentFeeRate
+        : lumpSumPrincipal * input.prepaymentFeeRate / 100;
+      balance = Math.max(0, balance - lumpSumPrincipal);
+      prepaymentAppliedMonth = month;
+      remainingBalanceAfterPrepayment = balance;
+
+      if (input.afterPrepayment === 'reducePayment') {
+        const remainingMonths = termMonths - month;
+        activeMonthlyMortgagePayment = balance > 0.005 && remainingMonths > 0
+          ? amortizedPayment({
+              principal: balance,
+              periodicRate: monthlyInterestRate,
+              periods: remainingMonths
+            })
+          : 0;
+        newMonthlyMortgagePayment = activeMonthlyMortgagePayment;
+      }
+    }
+
     totalPrincipalPaid += principalPayment;
+    totalPrincipalPaid += lumpSumPrincipal;
     totalInterestPaid += interest;
     totalMortgagePayments += mortgagePayment;
+    totalLumpSumPrincipalPaid += lumpSumPrincipal;
+    totalPrepaymentFeePaid += prepaymentFeeCost;
     totalPropertyTaxPaid += monthlyPropertyTax;
     totalInsurancePaid += monthlyInsurance;
     totalPmiPaid += pmi;
     totalHoaPaid += input.monthlyHOA;
-    cumulativeCashOutflow += monthlyHousingOutflow;
+    cumulativeCashOutflow += monthlyHousingOutflow + lumpSumPrincipal + prepaymentFeeCost;
 
     if (!payoffRecorded && balance <= 0.005) {
       payoffMonths = month;
@@ -221,9 +278,12 @@ function calculateScenario(scenario, index, options = {}) {
     const row = {
       month,
       year: Math.ceil(month / 12),
+      scheduledMortgagePayment,
       interest,
       scheduledPrincipal,
       extraPrincipal,
+      lumpSumPrincipal,
+      prepaymentFeeCost,
       principalPayment,
       mortgagePayment,
       propertyTax: monthlyPropertyTax,
@@ -231,10 +291,13 @@ function calculateScenario(scenario, index, options = {}) {
       pmi,
       hoa: input.monthlyHOA,
       monthlyHousingOutflow,
+      totalMonthlyCashOutflow: monthlyHousingOutflow + lumpSumPrincipal + prepaymentFeeCost,
       remainingBalance: balance,
       totalPrincipalPaid,
       totalInterestPaid,
       totalMortgagePayments,
+      totalLumpSumPrincipalPaid,
+      totalPrepaymentFeePaid,
       propertyTaxPaid: totalPropertyTaxPaid,
       insurancePaid: totalInsurancePaid,
       pmiPaid: totalPmiPaid,
@@ -261,6 +324,10 @@ function calculateScenario(scenario, index, options = {}) {
   const exitPenaltyAtHoldingPeriod = holdingSnapshot
     ? remainingBalanceAtHoldingPeriod * input.prepaymentPenaltyRate / 100
     : 0;
+  const lumpSumPrincipalPaidAtHoldingPeriod = holdingSnapshot?.totalLumpSumPrincipalPaid ?? 0;
+  const prepaymentFeePaidAtHoldingPeriod = holdingSnapshot?.totalPrepaymentFeePaid ?? 0;
+  const principalPaidAtHoldingPeriod = holdingSnapshot?.totalPrincipalPaid ?? 0;
+  const regularPrincipalPaidAtHoldingPeriod = Math.max(0, principalPaidAtHoldingPeriod - lumpSumPrincipalPaidAtHoldingPeriod);
   const initialMonthlyHousingCost = (firstMonth?.monthlyHousingOutflow ?? 0);
 
   return {
@@ -272,6 +339,20 @@ function calculateScenario(scenario, index, options = {}) {
     monthlyMortgagePayment,
     initialMonthlyHousingCost,
     monthlyHousingCostAtHoldingPeriod: holdingSnapshot?.monthlyHousingOutflow ?? 0,
+    requestedLumpSumPrepayment,
+    lumpSumPrepaymentApplied: totalLumpSumPrincipalPaid > 0.005,
+    prepaymentAppliedMonth,
+    prepaymentAppliedYears: prepaymentAppliedMonth / 12,
+    lumpSumPrincipalPaid: totalLumpSumPrincipalPaid,
+    prepaymentFeePaid: totalPrepaymentFeePaid,
+    lumpSumPrincipalPaidAtHoldingPeriod,
+    prepaymentFeePaidAtHoldingPeriod,
+    remainingBalanceAfterPrepayment,
+    newMonthlyMortgagePayment,
+    updatedRemainingBalance: remainingBalanceAtHoldingPeriod,
+    updatedPayoffMonths: payoffMonths,
+    updatedPayoffYears: payoffMonths / 12,
+    updatedLifetimeInterest: totalInterestPaid,
     cashAtClosing,
     discountPointsCost,
     pointsCost: discountPointsCost,
@@ -287,7 +368,8 @@ function calculateScenario(scenario, index, options = {}) {
     totalInterest: totalInterestPaid,
     totalOwnershipCosts: totalPropertyTaxPaid + totalInsurancePaid + totalPmiPaid + totalHoaPaid,
     remainingBalanceAtHoldingPeriod,
-    principalPaidAtHoldingPeriod: holdingSnapshot?.totalPrincipalPaid ?? 0,
+    principalPaidAtHoldingPeriod,
+    regularPrincipalPaidAtHoldingPeriod,
     interestPaidAtHoldingPeriod: holdingSnapshot?.totalInterestPaid ?? 0,
     mortgagePaymentsAtHoldingPeriod: holdingSnapshot?.totalMortgagePayments ?? 0,
     propertyTaxPaidAtHoldingPeriod: holdingSnapshot?.propertyTaxPaid ?? 0,
@@ -308,7 +390,7 @@ function calculateScenario(scenario, index, options = {}) {
       : 0,
     monthlyPayment: monthlyMortgagePayment,
     paymentWithExtra: initialMonthlyHousingCost,
-    totalCost: cashAtClosing + totalMortgagePayments + totalPropertyTaxPaid + totalInsurancePaid + totalPmiPaid + totalHoaPaid,
+    totalCost: cashAtClosing + totalMortgagePayments + totalLumpSumPrincipalPaid + totalPrepaymentFeePaid + totalPropertyTaxPaid + totalInsurancePaid + totalPmiPaid + totalHoaPaid,
     monthly,
     annual
   };
@@ -335,6 +417,9 @@ function comparisonRows(scenarios) {
     remainingBalanceAtHoldingPeriod: scenario.remainingBalanceAtHoldingPeriod,
     principalPaidAtHoldingPeriod: scenario.principalPaidAtHoldingPeriod,
     interestPaidAtHoldingPeriod: scenario.interestPaidAtHoldingPeriod,
+    lumpSumPrincipalPaid: scenario.lumpSumPrincipalPaid,
+    prepaymentFeePaid: scenario.prepaymentFeePaid,
+    newMonthlyMortgagePayment: scenario.newMonthlyMortgagePayment,
     lifetimeInterest: scenario.lifetimeInterest,
     payoffYears: scenario.payoffYears
   }));
@@ -411,7 +496,7 @@ function stackedTotalFooter(items) {
 function buildCostDatasets(scenarios) {
   const datasets = [
     barDataset('Down Payment', scenarios.map(scenario => scenario.downPayment), componentColors.downPayment),
-    barDataset('Principal Paid', scenarios.map(scenario => scenario.principalPaidAtHoldingPeriod), componentColors.principalPaid),
+    barDataset('Principal Paid', scenarios.map(scenario => scenario.regularPrincipalPaidAtHoldingPeriod), componentColors.principalPaid),
     barDataset('Interest Paid', scenarios.map(scenario => scenario.interestPaidAtHoldingPeriod), componentColors.interest),
     barDataset('Closing Costs', scenarios.map(scenario => scenario.closingCosts), componentColors.closingCosts)
   ];
@@ -423,6 +508,8 @@ function buildCostDatasets(scenarios) {
     ['Insurance', 'insurancePaidAtHoldingPeriod', '#0ea5e9'],
     ['PMI', 'pmiPaidAtHoldingPeriod', componentColors.pmi],
     ['HOA / Service', 'hoaPaidAtHoldingPeriod', '#84cc16'],
+    ['Lump-Sum Principal', 'lumpSumPrincipalPaidAtHoldingPeriod', componentColors.lumpSumPrincipal],
+    ['Prepayment Fee', 'prepaymentFeePaidAtHoldingPeriod', componentColors.prepaymentFee],
     ['Exit Penalty', 'exitPenaltyAtHoldingPeriod', componentColors.exitPenalty]
   ];
 
@@ -451,7 +538,10 @@ export const mortgageComparisonModule = {
     'cashOutflowAtHoldingPeriod',
     'remainingBalanceAtHoldingPeriod',
     'principalPaidAtHoldingPeriod',
-    'interestPaidAtHoldingPeriod'
+    'interestPaidAtHoldingPeriod',
+    'lumpSumPrincipalPaid',
+    'prepaymentFeePaid',
+    'newMonthlyMortgagePayment'
   ],
   chartTabs: {
     primary: 'Payment',
@@ -509,6 +599,8 @@ export const mortgageComparisonModule = {
       || scenario.loanFees > 0
       || scenario.discountPointsCost > 0
       || scenario.exitPenaltyAtHoldingPeriod > 0
+      || scenario.lumpSumPrincipalPaid > 0
+      || scenario.prepaymentFeePaid > 0
       || compareOverYears > 0
     ));
 
@@ -550,6 +642,9 @@ export const mortgageComparisonModule = {
           { key: 'remainingBalanceAtHoldingPeriod', label: compareOverYears ? `Balance After ${compareOverYears}Y` : 'Remaining Balance', format: euros.format },
           { key: 'principalPaidAtHoldingPeriod', label: compareOverYears ? `Principal Paid After ${compareOverYears}Y` : 'Principal Paid', format: euros.format },
           { key: 'interestPaidAtHoldingPeriod', label: compareOverYears ? `Interest Paid After ${compareOverYears}Y` : 'Interest Paid', format: euros.format },
+          { key: 'lumpSumPrincipalPaid', label: 'Lump-Sum Principal Paid', format: euros.format },
+          { key: 'prepaymentFeePaid', label: 'Prepayment Fee Paid', format: euros.format },
+          { key: 'newMonthlyMortgagePayment', label: 'New Monthly Payment', format: value => value === null || value === undefined ? 'N/A' : eurosPrecise.format(value) },
           { key: 'lifetimeInterest', label: 'Lifetime Interest', format: euros.format },
           { key: 'payoffYears', label: 'Mortgage Payoff Time', format: value => `${Number(value).toFixed(1)} yrs` }
         ]

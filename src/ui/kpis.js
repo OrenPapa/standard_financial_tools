@@ -132,6 +132,10 @@ function renderMortgageComparisonKpis(payload) {
                 ${compareOverYears ? comparisonMetric(`Remaining balance after ${compareOverYears} yrs`, euros(scenario.remainingBalanceAtHoldingPeriod)) : ''}
                 ${compareOverYears ? comparisonMetric(`Principal paid after ${compareOverYears} yrs`, euros(scenario.principalPaidAtHoldingPeriod)) : ''}
                 ${compareOverYears ? comparisonMetric(`Interest paid after ${compareOverYears} yrs`, euros(scenario.interestPaidAtHoldingPeriod)) : ''}
+                ${scenario.lumpSumPrepaymentApplied ? comparisonMetric('Lump-sum principal paid', euros(scenario.lumpSumPrincipalPaid)) : ''}
+                ${scenario.lumpSumPrepaymentApplied ? comparisonMetric('Prepayment fee paid', euros(scenario.prepaymentFeePaid)) : ''}
+                ${scenario.newMonthlyMortgagePayment !== null && scenario.newMonthlyMortgagePayment !== undefined ? comparisonMetric('New monthly mortgage payment', eurosPreciseValue(scenario.newMonthlyMortgagePayment)) : ''}
+                ${scenario.lumpSumPrepaymentApplied ? comparisonMetric('Balance after prepayment', euros(scenario.remainingBalanceAfterPrepayment)) : ''}
                 ${comparisonMetric('Lifetime interest', euros(scenario.lifetimeInterest))}
                 ${comparisonMetric('Mortgage payoff time', `${Number(scenario.payoffYears).toFixed(1)} yrs`)}
               </div>

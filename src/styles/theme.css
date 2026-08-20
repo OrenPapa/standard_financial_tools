@@ -555,7 +555,7 @@ details > summary::-webkit-details-marker {
 }
 
 .mortgage-comparison-rail {
-  align-items: stretch;
+  align-items: flex-start;
   display: flex;
   gap: 1rem;
   min-width: max-content;
@@ -567,6 +567,21 @@ details > summary::-webkit-details-marker {
 
 .mortgage-comparison-card {
   width: min(24rem, calc(100vw - 3rem));
+}
+
+.prepayment-fee-option {
+  color: var(--ui-text-soft) !important;
+}
+
+.prepayment-fee-option:hover {
+  background: var(--ui-panel-soft) !important;
+  color: var(--ui-text) !important;
+}
+
+.prepayment-fee-option[aria-pressed="true"] {
+  background: var(--chart-emerald) !important;
+  border-color: var(--chart-emerald) !important;
+  color: #020617 !important;
 }
 
 .budget-builder[open] > .mortgage-comparison-summary .mortgage-comparison-caret {

@@ -1,7 +1,8 @@
 import { clampNumberToMeta, formatNumberForInput, parseNumberInput, sanitizeNumberInputText } from './controls.js';
 import { classes } from './theme.js';
 
-const advancedSettingsTooltip = 'By enabling advanced settings, include property tax, insurance, PMI, HOA or service charges, loan fees, discount points, and exit penalty data in the mortgage scenarios.';
+const advancedSettingsTooltip = 'By enabling advanced settings, include property tax, insurance, PMI, HOA or service charges, loan fees, discount points, exit penalty, and lump-sum prepayment data in the mortgage scenarios.';
+const prepaymentFieldIds = new Set(['lumpSumPrepaymentAmount', 'prepaymentAfterYears', 'prepaymentFeeType', 'prepaymentFeeRate', 'afterPrepayment']);
 
 function inputMarkup(field, value, options = {}) {
   const scenarioIndex = options.scenarioIndex;
@@ -9,18 +10,29 @@ function inputMarkup(field, value, options = {}) {
   const fieldAttrs = isGlobal
     ? `data-global-field-id="${field.id}"`
     : `data-scenario-index="${scenarioIndex}" data-field-id="${field.id}"`;
+  const extraAttrs = options.feeType ? ` data-fee-type="${options.feeType}"` : '';
   const inputId = isGlobal ? `mortgageComparison${field.id}` : `scenario${scenarioIndex}${field.id}`;
 
   if (field.type === 'text') {
     return `
-      <input id="${inputId}" ${fieldAttrs} type="text" value="${escapeHtml(value)}" class="${classes.inputBase} px-3 py-2">
+      <input id="${inputId}" ${fieldAttrs}${extraAttrs} type="text" value="${escapeHtml(value)}" class="${classes.inputBase} px-3 py-2">
+    `;
+  }
+
+  if (field.type === 'select') {
+    return `
+      <select id="${inputId}" ${fieldAttrs}${extraAttrs} class="${classes.inputBase} px-2 py-2">
+        ${field.options.map(([optionValue, label]) => `<option value="${optionValue}" ${value === optionValue ? 'selected' : ''}>${label}</option>`).join('')}
+      </select>
     `;
   }
 
   const prefix = (field.prefix || '').trim() === 'EUR' ? '&euro;' : (field.prefix || '').trim();
   const suffix = (field.suffix || '').trim();
+  const hasSuffixSlot = Boolean(suffix) || options.forceSuffix === true;
+  const inputPadding = options.compact ? 'px-2 py-1.5 text-right' : 'px-3 py-2 text-right';
   const paddingClasses = [
-    'px-3 py-2 text-right',
+    inputPadding,
     prefix ? 'pl-8' : '',
     suffix ? 'pr-9' : ''
   ].filter(Boolean).join(' ');
@@ -28,8 +40,8 @@ function inputMarkup(field, value, options = {}) {
   return `
     <span class="input-affix-shell relative block">
       ${prefix ? `<span class="input-affix input-affix-prefix">${prefix}</span>` : ''}
-      <input id="${inputId}" ${fieldAttrs} data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(field, value)}" class="${classes.inputBase} numeric-input ${paddingClasses}">
-      ${suffix ? `<span class="input-affix input-affix-suffix">${suffix}</span>` : ''}
+      <input id="${inputId}" ${fieldAttrs}${extraAttrs} data-control-kind="number" type="text" inputmode="decimal" value="${formatNumberForInput(field, value)}" class="${classes.inputBase} numeric-input ${paddingClasses}">
+      ${hasSuffixSlot ? `<span class="input-affix input-affix-suffix ${suffix ? '' : 'hidden'}">${suffix}</span>` : ''}
     </span>
   `;
 }
@@ -54,6 +66,57 @@ function renderField(field, value, inputOptions = {}) {
   `;
 }
 
+function prepaymentFeeInputField(field, feeType) {
+  if (feeType === 'fixed') {
+    return {
+      ...field,
+      min: 0,
+      max: 100000,
+      step: 100,
+      prefix: '',
+      suffix: '',
+      desc: 'Fixed prepayment fee paid as an additional cash outflow.'
+    };
+  }
+
+  return {
+    ...field,
+    min: 0,
+    max: 10,
+    step: 0.1,
+    prefix: '',
+    suffix: '%'
+  };
+}
+
+function renderPrepaymentFeeField({ scenario, feeTypeField, feeValueField, index }) {
+  const feeType = scenario.prepaymentFeeType === 'fixed' ? 'fixed' : 'percent';
+  const inputField = prepaymentFeeInputField(feeValueField, feeType);
+  const inputId = `scenario${index}${feeValueField.id}`;
+  const options = feeTypeField.options || [];
+
+  return `
+    <div class="block min-w-0" role="group" aria-labelledby="${inputId}Label" data-prepayment-fee-control>
+      <div class="mb-1.5 flex items-center justify-between gap-3">
+        <span id="${inputId}Label" class="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-200">
+          <span class="min-w-0">${feeValueField.label}</span>
+          <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${feeValueField.desc}</span></span>
+        </span>
+      </div>
+      <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+        <div class="grid min-h-10 grid-cols-2 rounded-md border border-white/10 bg-slate-950/70 p-1" aria-label="${feeTypeField.label}">
+          ${options.map(([optionValue, label]) => `
+            <button type="button" data-prepayment-fee-type="${optionValue}" data-scenario-index="${index}" aria-pressed="${feeType === optionValue}" class="prepayment-fee-option rounded px-2 py-1.5 text-xs font-semibold transition">${label}</button>
+          `).join('')}
+        </div>
+        <span data-dynamic-fee-type="${feeType}">
+          ${inputMarkup(inputField, scenario[feeValueField.id], { scenarioIndex: index, feeType, forceSuffix: true })}
+        </span>
+      </div>
+    </div>
+  `;
+}
+
 function renderTopAdvancedField(field, value, validation = {}) {
   const message = validation.global?.[field.id];
 
@@ -63,9 +126,37 @@ function renderTopAdvancedField(field, value, validation = {}) {
         <span>${field.label}</span>
         <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${field.desc}</span></span>
       </span>
-      <span class="w-28">${inputMarkup(field, value, { global: true })}</span>
+      <span class="w-24">${inputMarkup(field, value, { global: true, compact: true })}</span>
       ${message ? `<p class="basis-full text-xs leading-5 text-rose-300">${escapeHtml(message)}</p>` : ''}
     </label>
+  `;
+}
+
+function renderAdvancedScenarioFields({ scenario, fields, index }) {
+  const standardFields = fields.filter(field => !prepaymentFieldIds.has(field.id));
+  const prepaymentFields = fields.filter(field => prepaymentFieldIds.has(field.id));
+  const render = field => renderField(field, scenario[field.id], { scenarioIndex: index, validation: scenario._validation });
+  const prepaymentFeeTypeField = prepaymentFields.find(field => field.id === 'prepaymentFeeType');
+  const prepaymentFeeValueField = prepaymentFields.find(field => field.id === 'prepaymentFeeRate');
+  const visiblePrepaymentFields = prepaymentFields.filter(field => !['prepaymentFeeType', 'prepaymentFeeRate'].includes(field.id));
+
+  return `
+    ${standardFields.map(render).join('')}
+    ${prepaymentFields.length ? `
+      <details class="mt-1 border-t border-white/10 pt-3" data-scenario-prepayment-details>
+        <summary class="mortgage-comparison-summary flex cursor-pointer items-center justify-between gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Lump-sum prepayment</span>
+          <span class="mortgage-comparison-caret" aria-hidden="true"></span>
+        </summary>
+        <div class="mt-3 grid gap-2.5">
+          ${visiblePrepaymentFields.map(field => (
+            field.id === 'afterPrepayment' && prepaymentFeeTypeField && prepaymentFeeValueField
+              ? `${renderPrepaymentFeeField({ scenario, feeTypeField: prepaymentFeeTypeField, feeValueField: prepaymentFeeValueField, index })}${render(field)}`
+              : render(field)
+          )).join('')}
+        </div>
+      </details>
+    ` : ''}
   `;
 }
 
@@ -97,7 +188,7 @@ function renderScenarioForm({ scenario, basicFields, advancedFields, index, canR
               <span class="mortgage-comparison-caret" aria-hidden="true"></span>
             </summary>
             <div class="mt-3 grid gap-2.5">
-              ${advancedFields.map(field => renderField(field, scenario[field.id], { scenarioIndex: index, validation: scenario._validation })).join('')}
+              ${renderAdvancedScenarioFields({ scenario, fields: advancedFields, index })}
             </div>
           </details>
         ` : ''}
@@ -128,7 +219,7 @@ export function renderMortgageComparisonBuilder({ module, state, advancedEnabled
       <div class="mt-4">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           ${advancedScenarioFields.length ? `
-            <div class="advanced-settings flex min-h-10 flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2" aria-label="Advanced mortgage comparison settings">
+            <div class="advanced-settings flex min-h-14 flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2" aria-label="Advanced mortgage comparison settings">
               <span class="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-200">
                 <span>Advanced settings <span class="text-xs font-normal text-slate-400">(optional)</span></span>
                 <span class="${classes.iconTip}" tabindex="0">i<span class="${classes.tooltip}">${advancedSettingsTooltip}</span></span>
@@ -211,11 +302,30 @@ export function renderMortgageComparisonBuilder({ module, state, advancedEnabled
     });
   });
 
-  container.querySelectorAll('input').forEach(input => {
+  container.querySelectorAll('button[data-prepayment-fee-type]').forEach(button => {
+    button.addEventListener('click', () => {
+      const scenarioIndex = Number(button.dataset.scenarioIndex);
+      const nextFeeType = button.dataset.prepaymentFeeType;
+      const control = button.closest('[data-prepayment-fee-control]');
+      const input = control?.querySelector('input[data-field-id="prepaymentFeeRate"]');
+
+      if (input) commitInput(input, module, onChange, onGlobalChange);
+      onChange(scenarioIndex, 'prepaymentFeeType', nextFeeType);
+      syncPrepaymentFeeControl(control, nextFeeType);
+      if (input) commitInput(input, module, onChange, onGlobalChange);
+    });
+  });
+
+  container.querySelectorAll('input, select').forEach(input => {
     input.addEventListener('input', event => {
       const fieldId = event.target.dataset.fieldId || event.target.dataset.globalFieldId;
       const field = [...module.scenarioFields, ...(module.advancedControls || [])].find(item => item.id === fieldId);
       if (!field || field.type === 'text') {
+        onChange(Number(event.target.dataset.scenarioIndex), event.target.dataset.fieldId, event.target.value);
+        return;
+      }
+
+      if (field.type === 'select') {
         onChange(Number(event.target.dataset.scenarioIndex), event.target.dataset.fieldId, event.target.value);
         return;
       }
@@ -266,10 +376,15 @@ export function hideMortgageComparisonBuilder() {
 function commitScenarioInput(input, module, onChange) {
   const scenarioIndex = Number(input.dataset.scenarioIndex);
   const fieldId = input.dataset.fieldId;
-  const field = module.scenarioFields.find(item => item.id === fieldId);
+  const field = scenarioInputFieldMeta(module.scenarioFields.find(item => item.id === fieldId), input);
   if (!field) return;
 
   if (field.type === 'text') {
+    onChange(scenarioIndex, fieldId, input.value);
+    return;
+  }
+
+  if (field.type === 'select') {
     onChange(scenarioIndex, fieldId, input.value);
     return;
   }
@@ -294,7 +409,7 @@ function commitGlobalInput(input, module, onGlobalChange) {
 }
 
 function commitPendingInputs(container, module, onChange, onGlobalChange) {
-  container.querySelectorAll('input').forEach(input => {
+  container.querySelectorAll('input, select').forEach(input => {
     commitInput(input, module, onChange, onGlobalChange);
   });
 }
@@ -306,6 +421,33 @@ function commitInput(input, module, onChange, onGlobalChange) {
   }
 
   commitScenarioInput(input, module, onChange);
+}
+
+function scenarioInputFieldMeta(field, input) {
+  if (!field) return field;
+  if (field.id === 'prepaymentFeeRate') {
+    return prepaymentFeeInputField(field, input.dataset.feeType);
+  }
+  return field;
+}
+
+function syncPrepaymentFeeControl(control, feeType) {
+  if (!control) return;
+
+  control.querySelectorAll('button[data-prepayment-fee-type]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.prepaymentFeeType === feeType));
+  });
+
+  const input = control.querySelector('input[data-field-id="prepaymentFeeRate"]');
+  if (!input) return;
+
+  input.dataset.feeType = feeType;
+  input.classList.toggle('pr-9', feeType === 'percent');
+  const suffix = control.querySelector('.input-affix-suffix');
+  if (suffix) {
+    suffix.textContent = feeType === 'percent' ? '%' : '';
+    suffix.classList.toggle('hidden', feeType !== 'percent');
+  }
 }
 
 function escapeHtml(value) {

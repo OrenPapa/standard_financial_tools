@@ -4,7 +4,7 @@
 
 The mortgage comparison module compares two or more mortgage scenarios side by side.
 
-It keeps the basic workflow simple: home price, down payment, mortgage rate, term, closing costs, and optional extra principal payments. Advanced settings add ownership costs, lender fees, discount points, exit penalties, and a shared holding period.
+It keeps the basic workflow simple: home price, down payment, mortgage rate, term, closing costs, and optional extra principal payments. Advanced settings add ownership costs, lender fees, discount points, exit penalties, optional lump-sum principal prepayments, and a shared holding period.
 
 When advanced settings are disabled, advanced fields are neutralized before calculation and do not affect totals, charts, or visible table columns.
 
@@ -29,6 +29,11 @@ Advanced per-scenario inputs:
 - `loanFees`: upfront lender or origination fees separate from closing costs
 - `discountPointsRate`: upfront rate buy-down cost as a percentage of loan amount
 - `prepaymentPenaltyRate`: percentage of remaining balance paid at the comparison period
+- `lumpSumPrepaymentAmount`: optional one-time principal prepayment
+- `prepaymentAfterYears`: year offset when the one-time prepayment is applied
+- `prepaymentFeeType`: either `percent` or `fixed`
+- `prepaymentFeeRate`: fee value, interpreted as a percentage or fixed amount based on `prepaymentFeeType`
+- `afterPrepayment`: either `reducePayment` or `reduceTerm`
 
 Global advanced input:
 
@@ -47,6 +52,11 @@ Advanced scenario defaults are initialization values only:
 - loan fees: `EUR 0`
 - discount points: `0%`
 - exit penalty: `0%`
+- lump-sum prepayment amount: `EUR 0`
+- prepayment after: `5 years`
+- prepayment fee type: `%`
+- prepayment fee: `0`
+- after prepayment: `Reduce monthly payment`
 
 Explicit zero values remain valid and must not be replaced with defaults.
 
@@ -83,6 +93,34 @@ principalPayment = scheduledPrincipal + extraPrincipal
 ```
 
 Principal is clamped so it never exceeds the remaining balance. The final mortgage payment is only the amount needed to pay off the loan.
+
+When a lump-sum prepayment is configured, the monthly schedule applies it at the selected month. The actual applied amount is capped at the balance remaining after that month's regular mortgage payment:
+
+```text
+lumpSumPrincipal = min(lumpSumPrepaymentAmount, remainingBalance)
+newPrincipal = remainingBalance - lumpSumPrincipal
+```
+
+For percentage fees:
+
+```text
+prepaymentFeeCost = lumpSumPrincipal * prepaymentFeeRate / 100
+```
+
+For fixed fees:
+
+```text
+prepaymentFeeCost = prepaymentFeeRate
+```
+
+The lump-sum principal and fee are tracked separately:
+
+- the lump-sum principal reduces the mortgage balance
+- the prepayment fee is an additional cash outflow and does not reduce principal
+
+If `afterPrepayment` is `reducePayment`, the original mortgage end date and interest rate are kept. The scheduled mortgage payment is recalculated over the remaining months using the new principal.
+
+If `afterPrepayment` is `reduceTerm`, the scheduled mortgage payment is kept unchanged and the month-by-month amortization engine determines the earlier payoff month.
 
 Ownership costs are separate from amortization:
 
@@ -128,6 +166,8 @@ Cash outflow over the holding period is:
 cashOutflowAtHoldingPeriod =
   cashAtClosing
   + mortgage payments made
+  + lump-sum prepayment made during the holding period
+  + prepayment fee paid during the holding period
   + property tax paid
   + insurance paid
   + PMI paid
@@ -142,6 +182,8 @@ exitPenaltyAtHoldingPeriod =
   remainingBalanceAtHoldingPeriod * prepaymentPenaltyRate / 100
 ```
 
+The lump-sum payment and fee are included in holding-period cash outflow only when the prepayment month falls within the selected comparison period.
+
 Principal is kept separate from true financing and ownership costs. Result breakdowns distinguish equity-building cash, such as down payment and principal paid, from non-equity costs, such as interest, fees, taxes, insurance, PMI, HOA, and penalties.
 
 ## Results
@@ -155,6 +197,10 @@ Each scenario exposes:
 - remaining balance after the selected holding period
 - principal paid after the selected holding period
 - interest paid after the selected holding period
+- lump-sum principal paid
+- prepayment fee paid
+- new monthly mortgage payment, when the payment is reduced
+- balance after prepayment
 - lifetime interest
 - lifetime mortgage payments
 - mortgage payoff time

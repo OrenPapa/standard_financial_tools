@@ -19,7 +19,12 @@ function scenario(overrides = {}) {
     monthlyHOA: overrides.monthlyHOA ?? 0,
     loanFees: overrides.loanFees ?? 0,
     discountPointsRate: overrides.discountPointsRate ?? 0,
-    prepaymentPenaltyRate: overrides.prepaymentPenaltyRate ?? 0
+    prepaymentPenaltyRate: overrides.prepaymentPenaltyRate ?? 0,
+    lumpSumPrepaymentAmount: overrides.lumpSumPrepaymentAmount ?? 0,
+    prepaymentAfterYears: overrides.prepaymentAfterYears ?? 5,
+    prepaymentFeeType: overrides.prepaymentFeeType ?? 'percent',
+    prepaymentFeeRate: overrides.prepaymentFeeRate ?? 0,
+    afterPrepayment: overrides.afterPrepayment ?? 'reducePayment'
   };
 }
 
@@ -39,6 +44,11 @@ runTest('mortgage comparison starts with two scenarios and advanced defaults', (
   assert.equal(mortgageComparisonModule.defaultState.scenarios[0].propertyTaxRate, 1);
   assert.equal(mortgageComparisonModule.defaultState.scenarios[0].annualInsurance, 1000);
   assert.equal(mortgageComparisonModule.defaultState.scenarios[0].pmiRate, 0);
+  assert.equal(mortgageComparisonModule.defaultState.scenarios[0].lumpSumPrepaymentAmount, 0);
+  assert.equal(mortgageComparisonModule.defaultState.scenarios[0].prepaymentAfterYears, 5);
+  assert.equal(mortgageComparisonModule.defaultState.scenarios[0].prepaymentFeeType, 'percent');
+  assert.equal(mortgageComparisonModule.defaultState.scenarios[0].prepaymentFeeRate, 0);
+  assert.equal(mortgageComparisonModule.defaultState.scenarios[0].afterPrepayment, 'reducePayment');
 });
 
 runTest('mortgage comparison calculates each scenario independently', () => {
@@ -93,13 +103,19 @@ runTest('optional zero inputs remain valid and do not restore defaults', () => {
     monthlyHOA: 0,
     loanFees: 0,
     discountPointsRate: 0,
-    prepaymentPenaltyRate: 0
+    prepaymentPenaltyRate: 0,
+    lumpSumPrepaymentAmount: 0,
+    prepaymentFeeType: 'percent',
+    prepaymentFeeRate: 0
   }, 7);
 
   assert.equal(result.closingCosts, 0);
   assert.equal(result.extraMonthlyPayment, 0);
   assert.equal(result.propertyTaxRate, 0);
   assert.equal(result.annualInsurance, 0);
+  assert.equal(result.lumpSumPrepaymentAmount, 0);
+  assert.equal(result.prepaymentFeeType, 'percent');
+  assert.equal(result.prepaymentFeeRate, 0);
   assert.equal(result.cashAtClosing, result.downPayment);
 });
 
@@ -165,6 +181,109 @@ runTest('exit penalty applies only to holding-period cash outflow', () => {
   assertClose(result.exitPenaltyAtHoldingPeriod, 1150);
   assert(result.cashOutflowAtHoldingPeriod > result.monthly[83].cumulativeCashOutflow);
   assert(!Number.isNaN(result.lifetimeMortgagePayments));
+});
+
+runTest('lump-sum prepayment can reduce monthly payment without changing the original end date', () => {
+  const result = calculateSingle({
+    homePrice: 120000,
+    downPayment: 0,
+    annualInterestRate: 0,
+    mortgageTermYears: 10,
+    lumpSumPrepaymentAmount: 20000,
+    prepaymentAfterYears: 5,
+    prepaymentFeeRate: 1,
+    afterPrepayment: 'reducePayment'
+  }, 7);
+
+  assertClose(result.monthlyMortgagePayment, 1000);
+  assertClose(result.newMonthlyMortgagePayment, 666.67);
+  assert.equal(result.prepaymentAppliedMonth, 60);
+  assertClose(result.lumpSumPrincipalPaid, 20000);
+  assertClose(result.prepaymentFeePaid, 200);
+  assertClose(result.remainingBalanceAfterPrepayment, 40000);
+  assert.equal(result.payoffMonths, 120);
+  assertClose(result.lifetimeInterest, 0);
+  assertClose(result.lumpSumPrincipalPaidAtHoldingPeriod, 20000);
+  assertClose(result.prepaymentFeePaidAtHoldingPeriod, 200);
+  assertClose(result.cashOutflowAtHoldingPeriod, 96200);
+});
+
+runTest('lump-sum prepayment can reduce mortgage term while keeping scheduled payment', () => {
+  const result = calculateSingle({
+    homePrice: 120000,
+    downPayment: 0,
+    annualInterestRate: 0,
+    mortgageTermYears: 10,
+    lumpSumPrepaymentAmount: 20000,
+    prepaymentAfterYears: 5,
+    afterPrepayment: 'reduceTerm'
+  });
+
+  assertClose(result.monthlyMortgagePayment, 1000);
+  assert.equal(result.newMonthlyMortgagePayment, null);
+  assert.equal(result.monthly[60].scheduledMortgagePayment, 1000);
+  assert.equal(result.payoffMonths, 100);
+  assertClose(result.lumpSumPrincipalPaid, 20000);
+  assertClose(result.remainingBalanceAfterPrepayment, 40000);
+});
+
+runTest('lump-sum prepayment supports a fixed prepayment fee', () => {
+  const result = calculateSingle({
+    homePrice: 120000,
+    downPayment: 0,
+    annualInterestRate: 0,
+    mortgageTermYears: 10,
+    lumpSumPrepaymentAmount: 20000,
+    prepaymentAfterYears: 5,
+    prepaymentFeeType: 'fixed',
+    prepaymentFeeRate: 500,
+    afterPrepayment: 'reducePayment'
+  }, 7);
+
+  assert.equal(result.prepaymentFeeType, 'fixed');
+  assertClose(result.lumpSumPrincipalPaid, 20000);
+  assertClose(result.prepaymentFeePaid, 500);
+  assertClose(result.prepaymentFeePaidAtHoldingPeriod, 500);
+  assertClose(result.cashOutflowAtHoldingPeriod, 96500);
+});
+
+runTest('holding-period cash outflow excludes lump-sum prepayment after the comparison period', () => {
+  const result = calculateSingle({
+    homePrice: 120000,
+    downPayment: 0,
+    annualInterestRate: 0,
+    mortgageTermYears: 10,
+    lumpSumPrepaymentAmount: 20000,
+    prepaymentAfterYears: 5,
+    prepaymentFeeRate: 1
+  }, 4);
+
+  assertClose(result.lumpSumPrincipalPaid, 20000);
+  assertClose(result.prepaymentFeePaid, 200);
+  assertClose(result.lumpSumPrincipalPaidAtHoldingPeriod, 0);
+  assertClose(result.prepaymentFeePaidAtHoldingPeriod, 0);
+  assertClose(result.principalPaidAtHoldingPeriod, 48000);
+  assertClose(result.cashOutflowAtHoldingPeriod, 48000);
+});
+
+runTest('lump-sum prepayment is capped at remaining balance and fee uses applied amount', () => {
+  const result = calculateSingle({
+    homePrice: 120000,
+    downPayment: 0,
+    annualInterestRate: 0,
+    mortgageTermYears: 10,
+    lumpSumPrepaymentAmount: 50000,
+    prepaymentAfterYears: 9,
+    prepaymentFeeRate: 1,
+    afterPrepayment: 'reducePayment'
+  }, 9);
+
+  assertClose(result.lumpSumPrincipalPaid, 12000);
+  assertClose(result.prepaymentFeePaid, 120);
+  assertClose(result.remainingBalanceAfterPrepayment, 0);
+  assert.equal(result.payoffMonths, 108);
+  assertClose(result.cashOutflowAtHoldingPeriod, 120120);
+  assert(result.monthly.every(row => row.remainingBalance >= 0));
 });
 
 runTest('holding-period totals include mortgage payments and ownership costs', () => {
