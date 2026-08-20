@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { createApp } from '../server/app.js';
+import { createApp } from '../dist-server/app.js';
 
 async function runServerTest(name, fn) {
   try {
@@ -42,7 +42,7 @@ await runServerTest('server exposes API health route', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.body.ok, true);
   assert.equal(response.body.service, 'pfm-api');
-  assert.equal(response.body.database, 'not-configured');
+  assert.match(response.body.database, /^(configured|not-configured)$/);
 });
 
 await runServerTest('server returns JSON 404 for missing API routes', async () => {

@@ -8,7 +8,8 @@ The app is currently a Vite-built browser application.
 - Styling: Tailwind CSS via PostCSS plus local CSS variables in `src/styles/theme.css`
 - Charts: Chart.js from npm
 - Auth/analytics: Firebase from npm
-- Backend API scaffold: Express
+- Backend API scaffold: Express with TypeScript
+- Database driver: `pg` for Postgres
 - JavaScript: vanilla ES modules
 - Local serving: Vite dev server plus Express API server
 - Formula tests: Node assertion scripts
@@ -43,7 +44,7 @@ The Vite dev server proxies `/api` to the Express server on `http://127.0.0.1:30
 - `src/utils/`: shared formatting and finance formulas
 - `src/styles/app.css`: Tailwind and app CSS entrypoint
 - `src/styles/theme.css`: CSS custom properties and page-level styles
-- `server/`: Express app, API routes, and production static serving
+- `server/`: typed Express app, API routes, Postgres pool, and production static serving
 - `vite.config.js`: multi-page Vite build config
 
 ## Styling System

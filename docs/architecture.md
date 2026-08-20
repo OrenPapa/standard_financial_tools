@@ -66,8 +66,10 @@ Current shared helper:
 
 The Express backend lives under `server/`.
 
-- `server/index.js`: process entrypoint and listener setup.
-- `server/app.js`: Express app factory, shared middleware, health route, API mount, production static serving, and error handling.
-- `server/routes/api.js`: API router placeholder for backend routes.
+- `server/index.ts`: process entrypoint and listener setup.
+- `server/app.ts`: Express app factory, shared middleware, health route, API mount, production static serving, and error handling.
+- `server/db.ts`: typed Postgres pool and connection health helper.
+- `server/config/env.ts`: backend environment loading.
+- `server/routes/api.ts`: API router placeholder for backend routes.
 
-Keep Firebase client code in place until the auth/data migration is ready. New backend routes should be added under `server/routes/` and mounted from `server/app.js`. The future Postgres connection should be isolated behind a small data-access module instead of being imported directly by route handlers.
+Keep Firebase client code in place until the auth/data migration is ready. New backend routes should be added under `server/routes/` and mounted from `server/app.ts`. Postgres access should stay behind small data-access modules instead of being imported directly by every route handler.

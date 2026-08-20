@@ -79,9 +79,16 @@ pnpm dev:api
 ```
 
 The Vite dev server proxies `/api` requests to `http://127.0.0.1:3000`.
+The API reads Postgres settings from `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, and `DB_NAME`.
 
 For a production build:
 
 ```bash
 pnpm build
+```
+
+Build the typed backend:
+
+```bash
+pnpm build:api
 ```

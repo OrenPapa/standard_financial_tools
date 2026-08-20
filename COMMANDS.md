@@ -41,6 +41,14 @@ npm test
 
 ## Run Express API
 
+Build the typed backend:
+
+```powershell
+pnpm build:api
+```
+
+Run the compiled API:
+
 ```powershell
 pnpm start:api
 ```
@@ -52,6 +60,14 @@ http://127.0.0.1:3000
 ```
 
 Use `PORT` and `HOST` to change the listen address. Use `API_HOST` and `API_PORT` for the Vite dev proxy target.
+
+Check the database connection:
+
+```text
+http://127.0.0.1:3000/api/db/health
+```
+
+The backend reads Postgres settings from `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, and `DB_NAME`.
 
 ## Build For Firebase Hosting
 
