@@ -1,6 +1,6 @@
-# Budget Tracker
+# Budget Projection
 
-The Budget module tracks recurring income and expenses against a starting balance.
+The Budget Projection module tracks recurring income and expenses against a starting balance.
 
 ## Inputs
 
@@ -46,4 +46,4 @@ ending balance for month n = previous balance + monthly net
 - Cash flow chart comparing income, expenses, and net cash flow by month. Selected-month rows are included in each month where they happen.
 - Forecast chart showing projected balance by month.
 - Expense breakdown doughnut chart. If a row has a custom name, that name is used in the breakdown label; otherwise the selected type is used.
-- Budget forecast table with month, income, expenses, net cash flow, and ending balance.
+- Budget projection table with month, income, expenses, net cash flow, and ending balance.

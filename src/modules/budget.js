@@ -373,9 +373,9 @@ function chartRowsForForecast(state, rows) {
 
 export const budgetModule = {
   id: 'budget',
-  navLabel: 'Budget',
+  navLabel: 'Budget Projection',
   eyebrow: 'Financial Tools',
-  title: 'Budget Tracker',
+  title: 'Budget Projection',
   defaultState,
   controls: [],
   budgetModule: true,
@@ -440,7 +440,7 @@ export const budgetModule = {
         }
       },
       table: {
-        title: 'Budget Forecast',
+        title: 'Budget Projection',
         rows,
         columns: [
           { key: 'month', label: 'Month', format: formatPlain },
@@ -454,7 +454,7 @@ export const budgetModule = {
       },
       charts: {
         primary: {
-          title: 'Budget Overview',
+          title: 'Budget Projection',
           subtitle: `Income, expenses, and net cash flow by forecast ${chartForecast.interval}`,
           leftAxis: 'Amount',
           rightAxis: '',

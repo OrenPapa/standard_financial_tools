@@ -182,7 +182,7 @@ export function renderBudgetBuilder({ module, state, onFieldChange, onAddRow, on
     <details class="budget-builder" open>
       <summary class="mortgage-comparison-summary cursor-pointer">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="min-w-0 text-lg font-semibold text-white">Budget</h2>
+          <h2 class="min-w-0 text-lg font-semibold text-white">Budget Projection</h2>
           <span class="mortgage-comparison-caret" aria-hidden="true"></span>
         </div>
         <p class="text-sm text-slate-400">Track recurring income and expenses, then forecast the future balance.</p>
@@ -190,7 +190,7 @@ export function renderBudgetBuilder({ module, state, onFieldChange, onAddRow, on
       <div class="mt-4 grid gap-4">
         <section class="budget-group">
           <div class="mb-3">
-            <h3 class="text-sm font-semibold text-white">Starting Budget</h3>
+            <h3 class="text-sm font-semibold text-white">Starting Balance</h3>
             <p class="mt-1 text-xs leading-5 text-slate-400">Set today&apos;s balance and how far ahead you want the forecast to run.</p>
           </div>
         <div class="budget-settings-grid">

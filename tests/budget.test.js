@@ -168,7 +168,7 @@ runTest('budget exposes cash flow, balance, and expense charts', () => {
   const result = budgetModule.calculate(clone(budgetModule.defaultState));
 
   assert.deepEqual(Object.keys(result.charts), ['primary', 'balance', 'breakdown']);
-  assert.equal(result.table.title, 'Budget Forecast');
+  assert.equal(result.table.title, 'Budget Projection');
   assert.equal(result.charts.breakdown.type, 'doughnut');
 });
 

@@ -96,7 +96,7 @@ export const calculatorFieldSettings = {
     }
   },
   budget: {
-    label: 'Budget',
+    label: 'Budget Projection',
     fields: {
       startingBalance: { defaultValue: 2500, min: -1000000, max: 10000000, step: 100 },
       projectionLength: { defaultValue: 12, min: 1, max: 50, step: 1 },

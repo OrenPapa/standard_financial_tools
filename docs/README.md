@@ -28,7 +28,7 @@ Each calculator has a dedicated document with its inputs, formulas, variables, s
 - `docs/mortgage-calculator.md`: mortgage payment, ownership cost, PMI, equity, and total cost formulas.
 - `docs/mortgage-comparison.md`: multi-scenario mortgage comparison cards, charts, and table.
 - `docs/rent-vs-buy-calculator.md`: rent growth, mortgage, home value, equity, and net comparison formulas.
-- `docs/budget-tracker.md`: recurring income, expenses, monthly cash flow, and balance forecast formulas.
+- `docs/budget-tracker.md`: recurring income, expenses, monthly cash flow, and balance projection formulas.
 
 ## Feature Module Direction
 
@@ -43,7 +43,7 @@ The current modules are:
 - `mortgage`: Mortgage payment, amortization, and ownership cost calculator.
 - `mortgage-comparison`: Side-by-side mortgage scenario comparison.
 - `rent-vs-buy`: Rent versus buying cost and equity comparison calculator.
-- `budget`: Budget tracker with recurring income, expenses, and balance forecast.
+- `budget`: Budget Projection with recurring income, expenses, and balance forecast.
 
 Future calculators can be added as additional modules with their own:
 
